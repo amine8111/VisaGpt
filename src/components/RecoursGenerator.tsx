@@ -197,7 +197,7 @@ const refusalReasons: RefusalReason[] = [
 
 export function RecoursGenerator() {
   const { membership, user } = useVisaStore()
-  const { t, dir } = useLanguage()
+  const { t, dir, language } = useLanguage()
   const [step, setStep] = useState(1)
   const [selectedReason, setSelectedReason] = useState<RefusalReason | null>(null)
   const [fullName, setFullName] = useState(user?.fullName || '')
@@ -210,6 +210,12 @@ export function RecoursGenerator() {
 
   const isPremium = membership?.tier === 'premium'
 
+  const getLocalizedText = (item: { ar: string; en: string; fr: string }) => {
+    if (language === 'ar') return item.ar
+    if (language === 'fr') return item.fr
+    return item.en
+  }
+
   const generateDocument = () => {
     if (!selectedReason) return
     
@@ -217,26 +223,26 @@ export function RecoursGenerator() {
     
     setTimeout(() => {
       let doc = selectedReason.template
-        .replace(/\[FULL NAME\]/g, fullName || '[اسمك الكامل]')
-        .replace(/\[PASSPORT NUMBER\]/g, passportNumber || '[رقم الجواز]')
-        .replace(/\[DATE\]/g, applicationDate || new Date().toLocaleDateString('ar-DZ'))
-        .replace(/\[Country\]/g, embassy || '[اسم الدولة]')
-        .replace(/\[DETAILED PURPOSE\]/g, additionalInfo || '[التفاصيل]')
+        .replace(/\[FULL NAME\]/g, fullName || (language === 'ar' ? '[اسمك الكامل]' : language === 'fr' ? '[Votre nom]' : '[Your Full Name]'))
+        .replace(/\[PASSPORT NUMBER\]/g, passportNumber || (language === 'ar' ? '[رقم الجواز]' : language === 'fr' ? '[Numéro de passeport]' : '[Passport Number]'))
+        .replace(/\[DATE\]/g, applicationDate || new Date().toLocaleDateString(language === 'ar' ? 'ar-DZ' : language === 'fr' ? 'fr-DZ' : 'en-US'))
+        .replace(/\[Country\]/g, embassy || (language === 'ar' ? '[اسم الدولة]' : language === 'fr' ? '[Nom du pays]' : '[Country Name]'))
+        .replace(/\[DETAILED PURPOSE\]/g, additionalInfo || (language === 'ar' ? '[التفاصيل]' : language === 'fr' ? '[Détails]' : '[Details]'))
         .replace(/\[NUMBER\]/g, '15')
-        .replace(/\[DETAILED ITINERARY\]/g, additionalInfo || '[برنامج الرحلة]')
-        .replace(/\[ACCOMMODATION DETAILS\]/g, '[تفاصيل السكن]')
-        .replace(/\[DOCUMENT \d\]/g, '[اسم الوثيقة]')
-        .replace(/\[AMOUNT\]/g, '[المبلغ]')
+        .replace(/\[DETAILED ITINERARY\]/g, additionalInfo || (language === 'ar' ? '[برنامج الرحلة]' : language === 'fr' ? '[Itinéraire]' : '[Trip Itinerary]'))
+        .replace(/\[ACCOMMODATION DETAILS\]/g, language === 'ar' ? '[تفاصيل السكن]' : language === 'fr' ? '[Détails hébergement]' : '[Accommodation Details]')
+        .replace(/\[DOCUMENT \d\]/g, language === 'ar' ? '[اسم الوثيقة]' : language === 'fr' ? '[Nom du document]' : '[Document Name]')
+        .replace(/\[AMOUNT\]/g, language === 'ar' ? '[المبلغ]' : language === 'fr' ? '[Montant]' : '[Amount]')
         .replace(/\[DAYS\]/g, '15')
-        .replace(/\[EMPLOYMENT TYPE\]/g, '[نوع العمل]')
-        .replace(/\[YEARS\]/g, '[عدد السنوات]')
-        .replace(/\[PREVIOUS TRAVEL \d\]/g, '[سفر سابق]')
-        .replace(/\[FAMILY DETAILS\]/g, additionalInfo || '[تفاصيل العائلة]')
-        .replace(/\[EMPLOYER DETAILS\]/g, '[تفاصيل صاحب العمل]')
-        .replace(/\[POSITION AND SENIORITY\]/g, '[المنصب والقدم]')
-        .replace(/\[ANNUAL LEAVE DATES\]/g, '[تواريخ الإجازة]')
-        .replace(/\[PROPERTY DETAILS\]/g, '[تفاصيل الملكية]')
-        .replace(/\[BANK LOANS, MORTGAGES, ETC\.\]/g, '[القروض البنكية، الرهن العقاري، إلخ]')
+        .replace(/\[EMPLOYMENT TYPE\]/g, language === 'ar' ? '[نوع العمل]' : language === 'fr' ? '[Type d\'emploi]' : '[Employment Type]')
+        .replace(/\[YEARS\]/g, language === 'ar' ? '[عدد السنوات]' : language === 'fr' ? '[Années]' : '[Years]')
+        .replace(/\[PREVIOUS TRAVEL \d\]/g, language === 'ar' ? '[سفر سابق]' : language === 'fr' ? '[Voyage précédent]' : '[Previous Travel]')
+        .replace(/\[FAMILY DETAILS\]/g, additionalInfo || (language === 'ar' ? '[تفاصيل العائلة]' : language === 'fr' ? '[Détails famille]' : '[Family Details]'))
+        .replace(/\[EMPLOYER DETAILS\]/g, language === 'ar' ? '[تفاصيل صاحب العمل]' : language === 'fr' ? '[Détails employeur]' : '[Employer Details]')
+        .replace(/\[POSITION AND SENIORITY\]/g, language === 'ar' ? '[المنصب والقدم]' : language === 'fr' ? '[Poste et ancienneté]' : '[Position and Seniority]')
+        .replace(/\[ANNUAL LEAVE DATES\]/g, language === 'ar' ? '[تواريخ الإجازة]' : language === 'fr' ? '[Dates de congé]' : '[Annual Leave Dates]')
+        .replace(/\[PROPERTY DETAILS\]/g, language === 'ar' ? '[تفاصيل الملكية]' : language === 'fr' ? '[Détails propriété]' : '[Property Details]')
+        .replace(/\[BANK LOANS, MORTGAGES, ETC\.\]/g, language === 'ar' ? '[القروض البنكية، الرهن العقاري، إلخ]' : language === 'fr' ? '[Prêts bancaires, Hypothèques, etc.]' : '[Bank Loans, Mortgages, etc.]')
       
       setGeneratedDocument(doc)
       setIsGenerating(false)
@@ -269,15 +275,15 @@ export function RecoursGenerator() {
 
   if (!isPremium) {
     return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+      <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
         <div className="max-w-lg mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <h2 className="text-2xl font-bold mb-2 gradient-text">مولد الطعون</h2>
-            <p className="text-white/60 text-sm">أنشئ وثائق الطعن عند الرفض</p>
+            <h2 className="text-2xl font-bold mb-2 gradient-text">{t('recoursGenerator')}</h2>
+            <p className="text-white/60 text-sm">{t('recoursGeneratorDesc')}</p>
           </motion.div>
 
           <motion.div
@@ -290,8 +296,8 @@ export function RecoursGenerator() {
                 <AlertCircle className="text-neon-purple" size={20} />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-sm">هذه الخدمة متاحة فقط للمشتركين بريميوم</p>
-                <p className="text-xs text-white/60">اشترك الآن للحصول على جميع الخدمات المتقدمة</p>
+                <p className="font-medium text-sm">{t('premiumOnly')}</p>
+                <p className="text-xs text-white/60">{t('subscribeForAdvanced')}</p>
               </div>
             </div>
           </motion.div>
@@ -303,9 +309,9 @@ export function RecoursGenerator() {
             className="glass-card p-6 text-center"
           >
             <FileWarning className="mx-auto mb-4 text-white/30" size={48} />
-            <h3 className="font-bold mb-2">تم رفض طلبك؟</h3>
+            <h3 className="font-bold mb-2">{t('applicationRefused')}</h3>
             <p className="text-sm text-white/60 mb-4">
-              اشترك في باقة بريميوم للوصول إلى مولد الطعون المتقدم
+              {t('subscribePremiumRecours')}
             </p>
           </motion.div>
         </div>
@@ -314,15 +320,15 @@ export function RecoursGenerator() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">مولد الطعون</h2>
-          <p className="text-white/60 text-sm">أنشئ وثيقة الطعن على رفض التأشيرة</p>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('recoursGenerator')}</h2>
+          <p className="text-white/60 text-sm">{t('createRecoursDoc')}</p>
         </motion.div>
 
         <div className="flex items-center gap-2 mb-6">
@@ -342,8 +348,8 @@ export function RecoursGenerator() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-4"
           >
-            <h3 className="font-bold">ما هو سبب الرفض؟</h3>
-            <p className="text-sm text-white/60">اختر رمز الرفض الذي تلقيته</p>
+            <h3 className="font-bold">{t('refusalReasonQuestion')}</h3>
+            <p className="text-sm text-white/60">{t('chooseRejectionCode')}</p>
             
             {refusalReasons.map((reason, index) => (
               <motion.button
@@ -362,8 +368,8 @@ export function RecoursGenerator() {
                     {reason.code}
                   </span>
                   <div className="flex-1">
-                    <h4 className="font-bold mb-1">{reason.labelAr}</h4>
-                    <p className="text-xs text-white/60">{reason.descriptionAr}</p>
+                    <h4 className="font-bold mb-1">{getLocalizedText({ ar: reason.labelAr, en: reason.label, fr: reason.label })}</h4>
+                    <p className="text-xs text-white/60">{getLocalizedText({ ar: reason.descriptionAr, en: reason.description, fr: reason.description })}</p>
                   </div>
                 </div>
               </motion.button>
@@ -377,7 +383,7 @@ export function RecoursGenerator() {
                 onClick={() => setStep(2)}
                 className="neon-button w-full flex items-center justify-center gap-2"
               >
-                التالي
+                {t('next')}
                 <ArrowRight size={18} />
               </motion.button>
             )}
@@ -395,34 +401,34 @@ export function RecoursGenerator() {
                 <span className="w-6 h-6 bg-neon-magenta/20 text-neon-magenta rounded-full flex items-center justify-center text-xs font-bold">
                   {selectedReason.code}
                 </span>
-                <span>{selectedReason.labelAr}</span>
+                <span>{getLocalizedText({ ar: selectedReason.labelAr, en: selectedReason.label, fr: selectedReason.label })}</span>
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-white/70 mb-2 block">الاسم الكامل</label>
+              <label className="text-sm text-white/70 mb-2 block">{t('fullName')}</label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="كما هو مكتوب في الجواز"
+                placeholder={t('asInPassport')}
                 className="input-field"
               />
             </div>
 
             <div>
-              <label className="text-sm text-white/70 mb-2 block">رقم الجواز</label>
+              <label className="text-sm text-white/70 mb-2 block">{t('passportNumber')}</label>
               <input
                 type="text"
                 value={passportNumber}
                 onChange={(e) => setPassportNumber(e.target.value)}
-                placeholder="رقم الجواز"
+                placeholder={t('passportNumber')}
                 className="input-field"
               />
             </div>
 
             <div>
-              <label className="text-sm text-white/70 mb-2 block">تاريخ تقديم الطلب</label>
+              <label className="text-sm text-white/70 mb-2 block">{t('applicationDate')}</label>
               <input
                 type="date"
                 value={applicationDate}
@@ -432,28 +438,28 @@ export function RecoursGenerator() {
             </div>
 
             <div>
-              <label className="text-sm text-white/70 mb-2 block">السفارة/القنصلية</label>
+              <label className="text-sm text-white/70 mb-2 block">{t('embassyConsulate')}</label>
               <input
                 type="text"
                 value={embassy}
                 onChange={(e) => setEmbassy(e.target.value)}
-                placeholder="مثال: فرنسا"
+                placeholder={t('exampleCountry')}
                 className="input-field"
               />
             </div>
 
             <div>
-              <label className="text-sm text-white/70 mb-2 block">معلومات إضافية (اختياري)</label>
+              <label className="text-sm text-white/70 mb-2 block">{t('additionalInfoOptional')}</label>
               <textarea
                 value={additionalInfo}
                 onChange={(e) => setAdditionalInfo(e.target.value)}
-                placeholder="أي معلومات إضافية تود إضافتها..."
+                placeholder={t('additionalInfoPlaceholder')}
                 className="input-field min-h-[100px] resize-none"
               />
             </div>
 
             <div className="glass-card p-4">
-              <h4 className="font-bold mb-2">الوثائق المطلوبة:</h4>
+              <h4 className="font-bold mb-2">{t('requiredDocumentsRecours')}:</h4>
               <ul className="space-y-1">
                 {selectedReason.requiredDocs.map((doc) => (
                   <li key={doc} className="flex items-center gap-2 text-sm text-white/70">
@@ -485,12 +491,12 @@ export function RecoursGenerator() {
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                     />
-                    جارٍ الإنشاء...
+                    {t('generating')}
                   </>
                 ) : (
                   <>
                     <FileText size={18} />
-                    إنشاء الوثيقة
+                    {t('generateDocument')}
                   </>
                 )}
               </motion.button>
@@ -510,9 +516,9 @@ export function RecoursGenerator() {
               className="glass-card p-4 mb-4 text-center"
             >
               <Check className="mx-auto mb-2 text-neon-cyan" size={32} />
-              <h3 className="font-bold">تم إنشاء الوثيقة!</h3>
+              <h3 className="font-bold">{t('documentCreated')}</h3>
               <p className="text-xs text-white/60 mt-1">
-                راجع الوثيقة وأضف أي تعديلات ضرورية
+                {t('reviewAndEdit')}
               </p>
             </motion.div>
 
@@ -531,7 +537,7 @@ export function RecoursGenerator() {
                 onClick={resetGenerator}
                 className="px-6 py-3 rounded-xl glass-card-hover"
               >
-                جديد
+                {t('new')}
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.98 }}
@@ -539,7 +545,7 @@ export function RecoursGenerator() {
                 className="flex-1 neon-button flex items-center justify-center gap-2"
               >
                 <Download size={18} />
-                تحميل الوثيقة
+                {t('downloadDocument')}
               </motion.button>
             </div>
 
@@ -549,19 +555,19 @@ export function RecoursGenerator() {
               transition={{ delay: 0.2 }}
               className="glass-card p-4"
             >
-              <h4 className="font-bold mb-2">ملاحظات مهمة:</h4>
+              <h4 className="font-bold mb-2">{t('importantNotes')}:</h4>
               <ul className="space-y-2 text-sm text-white/80">
                 <li className="flex items-start gap-2">
                   <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1.5" />
-                  قم بمراجعة الوثيقة وإضافة أي معلومات مفقودة
+                  {t('reviewAndAddInfo')}
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1.5" />
-                  قدم الطعن خلال 30 يوم من تاريخ الرفض
+                  {t('submitWithin30Days')}
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1.5" />
-                  أحضر جميع الوثائق المطلوبة معك
+                  {t('bringAllRequiredDocs')}
                 </li>
               </ul>
             </motion.div>

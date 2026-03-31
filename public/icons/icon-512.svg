@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A051A"/>
+      <stop offset="100%" style="stop-color:#120A2B"/>
+    </linearGradient>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF"/>
+      <stop offset="100%" style="stop-color:#FF007A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="180" stroke="url(#grad)" stroke-width="12" fill="none" opacity="0.3"/>
+  <circle cx="256" cy="256" r="140" stroke="url(#grad)" stroke-width="8" fill="none" opacity="0.5"/>
+  <circle cx="256" cy="256" r="100" fill="url(#grad)" opacity="0.2"/>
+  <text x="256" y="290" text-anchor="middle" font-family="Arial" font-size="80" font-weight="bold" fill="url(#grad)">VG</text>
+</svg>

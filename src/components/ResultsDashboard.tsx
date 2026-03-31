@@ -67,7 +67,7 @@ export function ResultsDashboard() {
 
   if (!results) {
     return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10 flex items-center justify-center">
+      <div className="min-h-screen px-4 pt-20 pb-28 relative z-10 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-12 h-12 border-4 border-neon-cyan border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-white/60">{getLabel(LABELS.generating)}</p>
@@ -162,7 +162,7 @@ export function ResultsDashboard() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         {/* Officer Summary Banner */}
         <motion.div

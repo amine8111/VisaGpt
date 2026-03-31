@@ -39,7 +39,7 @@ interface LetterFormData {
 
 export function LetterGenerator() {
   const { user, setActiveNav } = useVisaStore()
-  const { t, dir } = useLanguage()
+  const { t, dir, language } = useLanguage()
   
   const [letterType, setLetterType] = useState<LetterType>('cover')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -65,10 +65,16 @@ export function LetterGenerator() {
   })
 
   const letterTypes = [
-    { id: 'cover', name: 'خطاب الغلاف', icon: Mail },
-    { id: 'employer', name: 'شهادة العمل', icon: Building },
-    { id: 'invitation', name: 'خطاب الدعوة', icon: Users },
+    { id: 'cover', name: t('coverLetter'), icon: Mail },
+    { id: 'employer', name: t('employmentCertificate'), icon: Building },
+    { id: 'invitation', name: t('invitationLetter'), icon: Users },
   ]
+
+  const getLocalizedText = (texts: { ar: string; en: string; fr: string }) => {
+    if (language === 'ar') return texts.ar
+    if (language === 'fr') return texts.fr
+    return texts.en
+  }
 
   const handleInputChange = (field: keyof LetterFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -203,7 +209,7 @@ ${inviterName}
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <motion.div
@@ -211,9 +217,9 @@ ${inviterName}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">مولد الخطابات</h2>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('letterGenerator')}</h2>
           <p className="text-white/60 text-sm">
-            أنشئ خطابات احترافية بسهولة
+            {t('letterGeneratorDesc')}
           </p>
         </motion.div>
 
@@ -252,62 +258,62 @@ ${inviterName}
             {letterType === 'cover' && (
               <>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">اسم المستلم</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('recipientName')}</label>
                   <input
                     type="text"
                     value={formData.recipientName}
                     onChange={(e) => handleInputChange('recipientName', e.target.value)}
                     className="input-field w-full"
-                    placeholder="اسم المستلم"
+                    placeholder={t('recipientName')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">المنصب</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('recipientTitle')}</label>
                   <input
                     type="text"
                     value={formData.recipientTitle}
                     onChange={(e) => handleInputChange('recipientTitle', e.target.value)}
                     className="input-field w-full"
-                    placeholder="السيد/ة"
+                    placeholder={t('recipientTitle')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">اسم السفارة</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('embassyName')}</label>
                   <input
                     type="text"
                     value={formData.embassyName}
                     onChange={(e) => handleInputChange('embassyName', e.target.value)}
                     className="input-field w-full"
-                    placeholder="فرنسا"
+                    placeholder={t('france')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">الغرض من الرحلة</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('purposeOfTrip')}</label>
                   <input
                     type="text"
                     value={formData.purpose}
                     onChange={(e) => handleInputChange('purpose', e.target.value)}
                     className="input-field w-full"
-                    placeholder="السياحة"
+                    placeholder={t('tourismLetter')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">مدة الإقامة</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('durationOfStayLetter')}</label>
                   <input
                     type="text"
                     value={formData.duration}
                     onChange={(e) => handleInputChange('duration', e.target.value)}
                     className="input-field w-full"
-                    placeholder="15 يوم"
+                    placeholder={t('days15')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">عنوان السكن</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('accommodationAddress')}</label>
                   <textarea
                     value={formData.accommodationAddress}
                     onChange={(e) => handleInputChange('accommodationAddress', e.target.value)}
                     className="input-field w-full h-24"
-                    placeholder="عنوان الفندق أو السكن"
+                    placeholder={t('hotelAddress')}
                   />
                 </div>
               </>
@@ -316,47 +322,47 @@ ${inviterName}
             {letterType === 'employer' && (
               <>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">اسم الموظف</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('employeeName')}</label>
                   <input
                     type="text"
                     value={formData.employeeName}
                     onChange={(e) => handleInputChange('employeeName', e.target.value)}
                     className="input-field w-full"
-                    placeholder={user?.fullName || 'اسم الموظف'}
+                    placeholder={user?.fullName || t('employeeName')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">المنصب</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('position')}</label>
                   <input
                     type="text"
                     value={formData.employeePosition}
                     onChange={(e) => handleInputChange('employeePosition', e.target.value)}
                     className="input-field w-full"
-                    placeholder="مهندس"
+                    placeholder={t('position')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">اسم الشركة</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('companyName')}</label>
                   <input
                     type="text"
                     value={formData.companyName}
                     onChange={(e) => handleInputChange('companyName', e.target.value)}
                     className="input-field w-full"
-                    placeholder="اسم الشركة"
+                    placeholder={t('companyName')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">عنوان الشركة</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('companyAddress')}</label>
                   <input
                     type="text"
                     value={formData.companyAddress}
                     onChange={(e) => handleInputChange('companyAddress', e.target.value)}
                     className="input-field w-full"
-                    placeholder="عنوان الشركة"
+                    placeholder={t('companyAddress')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">الراتب الشهري (دج)</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('monthlySalary')}</label>
                   <input
                     type="text"
                     value={formData.salary}
@@ -371,53 +377,53 @@ ${inviterName}
             {letterType === 'invitation' && (
               <>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">اسم الداعي</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('inviterName')}</label>
                   <input
                     type="text"
                     value={formData.inviterName}
                     onChange={(e) => handleInputChange('inviterName', e.target.value)}
                     className="input-field w-full"
-                    placeholder="اسم الداعي"
+                    placeholder={t('inviterName')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">عنوان الداعي</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('inviterAddress')}</label>
                   <input
                     type="text"
                     value={formData.inviterAddress}
                     onChange={(e) => handleInputChange('inviterAddress', e.target.value)}
                     className="input-field w-full"
-                    placeholder="عنوان الداعي في الخارج"
+                    placeholder={t('inviterAddress')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">اسم المدعو</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('inviteeName')}</label>
                   <input
                     type="text"
                     value={formData.inviteeName}
                     onChange={(e) => handleInputChange('inviteeName', e.target.value)}
                     className="input-field w-full"
-                    placeholder="اسم المدعو"
+                    placeholder={t('inviteeName')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">رقم جواز المدعو</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('inviteePassport')}</label>
                   <input
                     type="text"
                     value={formData.inviteePassport}
                     onChange={(e) => handleInputChange('inviteePassport', e.target.value)}
                     className="input-field w-full"
-                    placeholder="رقم الجواز"
+                    placeholder={t('passportNumber')}
                   />
                 </div>
                 <div className="glass-card p-4">
-                  <label className="block text-sm text-white/60 mb-2">العلاقة</label>
+                  <label className="block text-sm text-white/60 mb-2">{t('relationship')}</label>
                   <input
                     type="text"
                     value={formData.relationship}
                     onChange={(e) => handleInputChange('relationship', e.target.value)}
                     className="input-field w-full"
-                    placeholder="ابن، أخ، صديق"
+                    placeholder={t('relationship')}
                   />
                 </div>
               </>
@@ -432,12 +438,12 @@ ${inviterName}
               {isGenerating ? (
                 <>
                   <Loader2 size={20} className="animate-spin" />
-                  جاري الإنشاء...
+                  {t('generating')}
                 </>
               ) : (
                 <>
                   <PenTool size={20} />
-                  إنشاء الخطاب
+                  {t('generateLetter')}
                 </>
               )}
             </motion.button>
@@ -450,7 +456,7 @@ ${inviterName}
             <div className="glass-card p-4 mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle className="text-green-400" size={20} />
-                <span className="font-medium text-green-400">تم إنشاء الخطاب</span>
+                <span className="font-medium text-green-400">{t('letterGenerated')}</span>
               </div>
               <pre className="text-sm text-white/80 whitespace-pre-wrap font-mono bg-white/5 p-4 rounded-lg overflow-x-auto">
                 {generatedLetter}
@@ -464,14 +470,14 @@ ${inviterName}
                 className="flex-1 glass-card-hover py-3 flex items-center justify-center gap-2"
               >
                 <Copy size={18} />
-                نسخ
+                {t('copy')}
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 className="flex-1 neon-button py-3 flex items-center justify-center gap-2"
               >
                 <Download size={18} />
-                تحميل PDF
+                {t('downloadPDF')}
               </motion.button>
             </div>
 
@@ -480,7 +486,7 @@ ${inviterName}
               onClick={() => setGeneratedLetter(null)}
               className="w-full mt-3 py-3 text-neon-cyan text-center"
             >
-              إنشاء خطاب جديد
+              {t('createNewLetter')}
             </motion.button>
           </motion.div>
         )}

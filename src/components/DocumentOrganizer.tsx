@@ -63,26 +63,24 @@ export function DocumentOrganizer() {
     if (documents.length === 0) return
     
     setIsProcessing(true)
-    setProcessingStep('جاري تجهيز الملفات...')
+    setProcessingStep(t('preparingFiles'))
     
     await new Promise(resolve => setTimeout(resolve, 1500))
-    setProcessingStep('جاري إنشاء ملف PDF...')
+    setProcessingStep(t('creatingPDF'))
     
     await new Promise(resolve => setTimeout(resolve, 2000))
-    setProcessingStep('جاري تنسيق الصفحات...')
+    setProcessingStep(t('formattingPages'))
     
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    // Simulate PDF generation complete
     setIsProcessing(false)
     setProcessingStep('')
     
-    // In real implementation, this would use a library like jspdf
-    alert(`تم إنشاء ملف PDF بنجاح!\nعدد الصفحات: ${documents.length}\nيمكنك الآن تحميل الملف.`)
+    alert(t('pdfCreatedSuccess') + `\n${t('numberOfPages')}: ${documents.length}\n${t('canDownloadNow')}`)
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <motion.div
@@ -90,9 +88,9 @@ export function DocumentOrganizer() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">منظم الوثائق</h2>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('documentOrganizer')}</h2>
           <p className="text-white/60 text-sm">
-            ارفع وثائقك واحصل على ملف PDF واحد جاهز للطباعة
+            {t('documentOrganizerDesc')}
           </p>
         </motion.div>
 
@@ -120,9 +118,9 @@ export function DocumentOrganizer() {
               <div className="w-16 h-16 rounded-full bg-neon-cyan/20 flex items-center justify-center mb-4">
                 <Upload className="text-neon-cyan" size={32} />
               </div>
-              <p className="font-medium mb-2">انقر لرفع الملفات</p>
+              <p className="font-medium mb-2">{t('clickToUpload')}</p>
               <p className="text-xs text-white/50">
-                PDF, JPG, PNG, DOC (الحد الأقصى: 10 ملفات)
+                {t('fileFormatsNote')}
               </p>
             </div>
           </motion.button>
@@ -136,7 +134,7 @@ export function DocumentOrganizer() {
             className="space-y-3 mb-6"
           >
             <h3 className="font-bold text-sm">
-              الوثائق المرفوعة ({documents.length})
+              {t('uploadedDocuments')} ({documents.length})
             </h3>
             
             <AnimatePresence>
@@ -193,7 +191,7 @@ export function DocumentOrganizer() {
               ) : (
                 <>
                   <Zap size={20} />
-                  دمج في ملف PDF واحد
+                  {t('mergeToPDF')}
                 </>
               )}
             </motion.button>
@@ -204,7 +202,7 @@ export function DocumentOrganizer() {
                 className="flex-1 glass-card-hover py-3 flex items-center justify-center gap-2"
               >
                 <Download size={18} />
-                تحميل الكل
+                {t('downloadAll')}
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.98 }}
@@ -212,7 +210,7 @@ export function DocumentOrganizer() {
                 className="flex-1 glass-card-hover py-3 flex items-center justify-center gap-2 text-red-400"
               >
                 <Trash2 size={18} />
-                حذف الكل
+                {t('deleteAll')}
               </motion.button>
             </div>
           </motion.div>
@@ -230,7 +228,7 @@ export function DocumentOrganizer() {
               <File className="text-white/30" size={48} />
             </div>
             <p className="text-white/50 text-sm">
-              لم يتم رفع أي وثائق بعد
+              {t('noDocumentsUploaded')}
             </p>
           </motion.div>
         )}
@@ -245,10 +243,9 @@ export function DocumentOrganizer() {
           <div className="flex items-start gap-3">
             <AlertCircle className="text-neon-cyan flex-shrink-0" size={20} />
             <div className="text-sm">
-              <h4 className="font-medium text-neon-cyan mb-1">ترتيب الملفات مهم!</h4>
+              <h4 className="font-medium text-neon-cyan mb-1">{t('fileOrderImportant')}</h4>
               <p className="text-white/70">
-                تأكد من ترتيب الملفات بالترتيب الصحيح قبل دمجها. الترتيب الموصى به:
-                1. جواز السفر، 2. الصور، 3. كشف الحساب، 4. شهادة العمل، 5. باقي الوثائق
+                {t('fileOrderTip')}
               </p>
             </div>
           </div>
@@ -262,9 +259,9 @@ export function DocumentOrganizer() {
           className="mt-6 grid grid-cols-3 gap-3"
         >
           {[
-            { icon: CheckCircle, label: 'تلقائي', desc: 'تنظيم ذكي' },
-            { icon: FileText, label: 'PDF واحد', desc: 'جاهز للطباعة' },
-            { icon: Shield, label: 'آمن', desc: 'بياناتك محمية' },
+            { icon: CheckCircle, label: t('automatic'), desc: t('smartOrganize') },
+            { icon: FileText, label: t('singlePDF'), desc: t('readyToPrint') },
+            { icon: Shield, label: t('secure'), desc: t('dataProtected') },
           ].map((feature, index) => (
             <div key={index} className="glass-card p-3 text-center">
               <feature.icon className="text-neon-cyan mx-auto mb-2" size={24} />

@@ -2,10 +2,19 @@
 
 import { motion } from 'framer-motion'
 import { useVisaStore } from '@/store/visaStore'
+import { useLanguage } from './LanguageProvider'
 import { useEffect } from 'react'
 
 export function AIProcessing() {
   const { runAssessment, setIsAnalyzing } = useVisaStore()
+  const { t } = useLanguage()
+
+  const steps = [
+    t('analyzingPersonalData'),
+    t('analyzingFinancialStatus'),
+    t('analyzingTravelHistory'),
+    t('calculatingVisaScore'),
+  ]
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -76,7 +85,7 @@ export function AIProcessing() {
           transition={{ duration: 2, repeat: Infinity }}
           className="text-2xl font-bold gradient-text mb-4"
         >
-          جارٍ تحليل ملفك...
+          {t('analyzingProfile')}
         </motion.h2>
 
         <motion.p
@@ -85,7 +94,7 @@ export function AIProcessing() {
           transition={{ delay: 0.5 }}
           className="text-white/60"
         >
-          يرجى الانتظار قليلاً
+          {t('pleaseWait')}
         </motion.p>
 
         <motion.div
@@ -94,7 +103,7 @@ export function AIProcessing() {
           transition={{ delay: 1 }}
           className="mt-8 space-y-3"
         >
-          {['فحص البيانات الشخصية', 'تقييم الوضع المالي', 'تحليل سجل السفر', 'حساب نقاط التأشيرة'].map((step, index) => (
+          {steps.map((step, index) => (
             <motion.div
               key={step}
               initial={{ opacity: 0, x: -20 }}

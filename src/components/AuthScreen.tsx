@@ -92,7 +92,7 @@ export function AuthScreen() {
           >
             <Sparkles className="text-neon-magenta mx-auto mb-2" size={48} />
           </motion.div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">VisaAI DZ</h1>
+          <h1 className="text-4xl font-bold gradient-text mb-2">VisaGPT</h1>
           <p className="text-white/60 text-lg">{t('appTagline')}</p>
         </div>
 

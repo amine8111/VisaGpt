@@ -1,0 +1,208 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { CheckSquare, Package, Copy, Download } from 'lucide-react'
+import { useLanguage } from './LanguageProvider'
+
+interface PackingItem {
+  id: string
+  name: string
+  nameAr: string
+  nameFr: string
+  category: string
+  checked: boolean
+}
+
+export function PackingListGenerator() {
+  const { t, language } = useLanguage()
+
+  const packingCategories = {
+    documents: {
+      name: t('packingDocuments'),
+      nameAr: 'الوثائق',
+      nameFr: 'Documents',
+      icon: '📄',
+      items: [
+        { name: t('passport'), nameAr: 'جواز السفر', nameFr: 'Passeport' },
+        { name: t('visa'), nameAr: 'تأشيرة', nameFr: 'Visa' },
+        { name: t('flightTicket'), nameAr: 'تذكرة الطيران', nameFr: 'Billet d\'avion' },
+        { name: t('hotelBooking'), nameAr: 'حجز الفندق', nameFr: 'Réservation hôtel' },
+        { name: t('travelInsurance'), nameAr: 'تأمين السفر', nameFr: 'Assurance voyage' },
+        { name: t('passportPhotos'), nameAr: 'صور شخصية', nameFr: 'Photos passeport' },
+      ],
+    },
+    electronics: {
+      name: t('electronics'),
+      nameAr: 'الإلكترونيات',
+      nameFr: 'Électronique',
+      icon: '📱',
+      items: [
+        { name: t('phoneCharger'), nameAr: 'شاحن الهاتف', nameFr: 'Chargeur téléphone' },
+        { name: t('laptopCharger'), nameAr: 'شاحن اللابتوب', nameFr: 'Chargeur laptop' },
+        { name: t('headphones'), nameAr: 'سماعات', nameFr: 'Écouteurs' },
+        { name: t('camera'), nameAr: 'كاميرا', nameFr: 'Appareil photo' },
+        { name: t('powerAdapter'), nameAr: 'محول كهربائي', nameFr: 'Adaptateur' },
+      ],
+    },
+    clothes: {
+      name: t('clothes'),
+      nameAr: 'الملابس',
+      nameFr: 'Vêtements',
+      icon: '👕',
+      items: [
+        { name: t('underwear'), nameAr: 'ملابس داخلية', nameFr: 'Sous-vêtements' },
+        { name: t('socks'), nameAr: 'جوارب', nameFr: 'Chaussettes' },
+        { name: t('shoes'), nameAr: 'أحذية', nameFr: 'Chaussures' },
+        { name: t('casualClothes'), nameAr: 'ملابس للبيت', nameFr: 'Vêtements maison' },
+        { name: t('jacket'), nameAr: 'معطف', nameFr: 'Veste' },
+        { name: t('hat'), nameAr: 'قبعة', nameFr: 'Chapeau' },
+      ],
+    },
+    toiletries: {
+      name: t('toiletries'),
+      nameAr: 'الاستحمام',
+      nameFr: 'Hygiène',
+      icon: '🧴',
+      items: [
+        { name: t('toothbrush'), nameAr: 'فرشاة أسنان', nameFr: 'Brosse à dents' },
+        { name: t('toothpaste'), nameAr: 'معجون أسنان', nameFr: 'Dentifrice' },
+        { name: t('shampoo'), nameAr: 'شامبو', nameFr: 'Shampoing' },
+        { name: t('soap'), nameAr: 'صابون', nameFr: 'Savon' },
+        { name: t('deodorant'), nameAr: 'مزيل عرق', nameFr: 'Déodorant' },
+      ],
+    },
+    medicine: {
+      name: t('medicine'),
+      nameAr: 'الأدوية',
+      nameFr: 'Médicaments',
+      icon: '💊',
+      items: [
+        { name: t('basicMedication'), nameAr: 'أدوية أساسية', nameFr: 'Médicaments de base' },
+        { name: t('painRelief'), nameAr: 'مسكنات', nameFr: 'Antidouleurs' },
+        { name: t('asthma'), nameAr: 'ربو', nameFr: 'Asthme' },
+        { name: t('firstAidKit'), nameAr: 'حقيبة إسعافات أولية', nameFr: 'Trousse de secours' },
+      ],
+    },
+  }
+
+  const getName = (item: { name: string; nameAr: string; nameFr: string }) => {
+    if (language === 'ar') return item.nameAr
+    if (language === 'fr') return item.nameFr
+    return item.name
+  }
+
+  const getCatName = (cat: typeof packingCategories[keyof typeof packingCategories]) => {
+    if (language === 'ar') return cat.nameAr
+    if (language === 'fr') return cat.nameFr
+    return cat.name
+  }
+
+  const [items, setItems] = useState<PackingItem[]>(() => {
+    const allItems: PackingItem[] = []
+    Object.entries(packingCategories).forEach(([cat, data]) => {
+      data.items.forEach((item, idx) => {
+        allItems.push({
+          id: `${cat}-${idx}`,
+          name: getName(item),
+          nameAr: item.nameAr,
+          nameFr: item.nameFr,
+          category: cat,
+          checked: false,
+        })
+      })
+    })
+    return allItems
+  })
+
+  const toggleItem = (id: string) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ))
+  }
+
+  const checkedCount = items.filter(i => i.checked).length
+  const progress = Math.round((checkedCount / items.length) * 100)
+
+  const getCategoryItems = (category: string) => items.filter(i => i.category === category)
+
+  const copyList = () => {
+    const list = Object.entries(packingCategories).map(([cat, data]) => {
+      const categoryItems = getCategoryItems(cat)
+      return `${data.icon} ${getCatName(data)}:\n${categoryItems.map(i => `${i.checked ? '✓' : '☐'} ${i.name}`).join('\n')}`
+    }).join('\n\n')
+    navigator.clipboard.writeText(list)
+}
+
+  return (
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
+      <div className="max-w-lg mx-auto">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <h2 className="text-2xl font-bold mb-2 gradient-text">قائمة التعبئة</h2>
+          <p className="text-white/60 text-sm">قائمةItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItemsItems</p>
+          <p className="text-white/60 text-sm">Don't forget anything</p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          className="glass-card p-4 mb-6"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-white/60">التقدم</span>
+            <span className="text-sm font-bold text-neon-cyan">{progress}%</span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+            <motion.div 
+              className="h-full bg-neon-cyan"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-white/40 mt-2">{checkedCount} من {items.length}ItemsItems</p>
+        </motion.div>
+
+        <button 
+          onClick={copyList}
+          className="w-full mb-6 py-3 glass-card-hover rounded-xl flex items-center justify-center gap-2"
+        >
+          <Copy size={18} />
+          نسخ القائمة
+        </button>
+
+        {Object.entries(packingCategories).map(([cat, data], catIdx) => (
+          <motion.div
+            key={cat}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: catIdx * 0.1 }}
+            className="glass-card p-4 mb-4"
+          >
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              <span>{data.icon}</span>
+              {data.name}
+            </h3>
+            <div className="space-y-2">
+              {getCategoryItems(cat).map(item => (
+                <label
+                  key={item.id}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={() => toggleItem(item.id)}
+                    className="w-5 h-5 rounded accent-neon-cyan"
+                  />
+                  <span className={item.checked ? 'line-through text-white/40' : ''}>
+                    {item.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
+}

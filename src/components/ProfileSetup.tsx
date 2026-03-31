@@ -16,9 +16,13 @@ const steps = [
 
 export function ProfileSetup() {
   const { t, language, dir } = useLanguage()
-  const { userProfile, updateProfile, setActiveNav } = useVisaStore()
+  const { userProfile, updateProfile, setActiveNav, user } = useVisaStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState({
+    // Personal Info
+    fullName: userProfile.fullName || user?.fullName || '',
+    email: userProfile.email || user?.email || '',
+    phone: userProfile.phone || '',
     // Passport
     passportNumber: userProfile.passportNumber || '',
     passportIssueDate: userProfile.passportIssueDate || '',
@@ -27,6 +31,7 @@ export function ProfileSetup() {
     // Personal
     dateOfBirth: userProfile.dateOfBirth || '',
     placeOfBirth: userProfile.placeOfBirth || '',
+    nationality: userProfile.nationality || 'Algeria',
     maritalStatus: userProfile.maritalStatus || '',
     children: userProfile.children || 0,
     // Employment
@@ -62,8 +67,21 @@ export function ProfileSetup() {
   }
 
   const handleSave = () => {
+    const calculateAge = (dob: string) => {
+      if (!dob) return null;
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
     updateProfile({
       ...formData,
+      age: calculateAge(formData.dateOfBirth),
       monthlyIncome: formData.monthlyIncome ? parseFloat(String(formData.monthlyIncome)) : null,
       bankBalance: formData.bankBalance ? parseFloat(String(formData.bankBalance)) : null,
       averageMonthlyBalance: formData.averageMonthlyBalance ? parseFloat(String(formData.averageMonthlyBalance)) : null,
@@ -131,6 +149,52 @@ export function ProfileSetup() {
       case 1: // Personal
         return (
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-white/70 mb-2">{t('fullName') || 'Full Name'}</label>
+              <input
+                type="text"
+                value={formData.fullName}
+                onChange={(e) => handleChange('fullName', e.target.value)}
+                className="input-field"
+                placeholder={language === 'ar' ? 'محمد أحمد' : language === 'fr' ? 'Mohamed Ahmed' : 'Mohamed Ahmed'}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-white/70 mb-2">{t('email') || 'Email'}</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  className="input-field"
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-white/70 mb-2">{t('phone') || 'Phone'}</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  className="input-field"
+                  placeholder="+213 XXX XXX XXX"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-white/70 mb-2">{t('nationality') || 'Nationality'}</label>
+              <select
+                value={formData.nationality}
+                onChange={(e) => handleChange('nationality', e.target.value)}
+                className="input-field"
+              >
+                <option value="Algeria">Algeria / الجزائر / Algérie</option>
+                <option value="Morocco">Morocco / المغرب / Maroc</option>
+                <option value="Tunisia">Tunisia / تونس / Tunisie</option>
+                <option value="Libya">Libya / ليبيا / Libye</option>
+                <option value="Egypt">Egypt / مصر / Égypte</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-white/70 mb-2">{t('dateOfBirth') || 'Date of Birth'}</label>
@@ -307,7 +371,7 @@ export function ProfileSetup() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <div className="text-center mb-8">

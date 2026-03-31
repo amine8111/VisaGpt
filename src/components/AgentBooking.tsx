@@ -2,12 +2,102 @@
 
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { Calendar, Clock, MapPin, User, Phone, Mail, Check, AlertCircle, Video, Star, MessageSquare } from 'lucide-react'
+import { Calendar, Clock, MapPin, Check, AlertCircle, Video, Star } from 'lucide-react'
 import { useVisaStore } from '@/store/visaStore'
 import { cn } from '@/lib/utils'
 import { useLanguage } from './LanguageProvider'
 
+interface AgentData {
+  nameAr: string
+  nameEn: string
+  nameFr: string
+  specialtyAr: string
+  specialtyEn: string
+  specialtyFr: string
+  locationAr: string
+  locationEn: string
+  locationFr: string
+}
+
 interface Agent {
+  id: string
+  data: AgentData
+  rating: number
+  reviews: number
+  languagesAr: string[]
+  languagesEn: string[]
+  languagesFr: string[]
+  availability: number[]
+  photo: string
+}
+
+const agentsData: Agent[] = [
+  {
+    id: '1',
+    data: {
+      nameAr: 'كريم بن علي',
+      nameEn: 'Karim Ben Ali',
+      nameFr: 'Karim Ben Ali',
+      specialtyAr: 'تأشيرات شنغن',
+      specialtyEn: 'Schengen Visas',
+      specialtyFr: 'Visas Schengen',
+      locationAr: 'الجزائر العاصمة',
+      locationEn: 'Algiers',
+      locationFr: 'Alger',
+    },
+    rating: 4.9,
+    reviews: 127,
+    languagesAr: ['العربية', 'الفرنسية', 'الإنجليزية'],
+    languagesEn: ['Arabic', 'French', 'English'],
+    languagesFr: ['Arabe', 'Français', 'Anglais'],
+    availability: [6, 0, 1, 3],
+    photo: '👨‍💼'
+  },
+  {
+    id: '2',
+    data: {
+      nameAr: 'فاطمة الزهراء',
+      nameEn: 'Fatima Zahra',
+      nameFr: 'Fatima Zahra',
+      specialtyAr: 'تأشيرات أمريكا وكندا',
+      specialtyEn: 'USA & Canada Visas',
+      specialtyFr: 'Visas USA & Canada',
+      locationAr: 'وهران',
+      locationEn: 'Oran',
+      locationFr: 'Oran',
+    },
+    rating: 4.8,
+    reviews: 89,
+    languagesAr: ['العربية', 'الفرنسية'],
+    languagesEn: ['Arabic', 'French'],
+    languagesFr: ['Arabe', 'Français'],
+    availability: [0, 2, 4],
+    photo: '👩‍💼'
+  },
+  {
+    id: '3',
+    data: {
+      nameAr: 'أحمد محمد',
+      nameEn: 'Ahmed Mohamed',
+      nameFr: 'Ahmed Mohamed',
+      specialtyAr: 'تأشيرات بريطانيا',
+      specialtyEn: 'UK Visas',
+      specialtyFr: 'Visas Royaume-Uni',
+      locationAr: 'قسنطينة',
+      locationEn: 'Constantine',
+      locationFr: 'Constantine',
+    },
+    rating: 4.7,
+    reviews: 64,
+    languagesAr: ['العربية', 'الفرنسية', 'الإنجليزية'],
+    languagesEn: ['Arabic', 'French', 'English'],
+    languagesFr: ['Arabe', 'Français', 'Anglais'],
+    availability: [6, 0, 2],
+    photo: '👨‍⚖️'
+  },
+]
+
+interface LocalizedAgent {
   id: string
   name: string
   specialty: string
@@ -15,45 +105,9 @@ interface Agent {
   rating: number
   reviews: number
   languages: string[]
-  availability: string[]
+  availability: number[]
   photo: string
 }
-
-const agents: Agent[] = [
-  {
-    id: '1',
-    name: 'كريم بن علي',
-    specialty: 'تأشيرات شنغن',
-    location: 'الجزائر العاصمة',
-    rating: 4.9,
-    reviews: 127,
-    languages: ['العربية', 'الفرنسية', 'الإنجليزية'],
-    availability: ['السبت', 'الأحد', 'الاثنين', 'الأربعاء'],
-    photo: '👨‍💼'
-  },
-  {
-    id: '2',
-    name: 'فاطمة الزهراء',
-    specialty: 'تأشيرات أمريكا وكندا',
-    location: 'وهران',
-    rating: 4.8,
-    reviews: 89,
-    languages: ['العربية', 'الفرنسية'],
-    availability: ['الأحد', 'الثلاثاء', 'الخميس'],
-    photo: '👩‍💼'
-  },
-  {
-    id: '3',
-    name: 'أحمد محمد',
-    specialty: 'تأشيرات بريطانيا',
-    location: 'قسنطينة',
-    rating: 4.7,
-    reviews: 64,
-    languages: ['العربية', 'الفرنسية', 'الإنجليزية'],
-    availability: ['السبت', 'الأحد', 'الثلاثاء'],
-    photo: '👨‍⚖️'
-  },
-]
 
 interface TimeSlot {
   time: string
@@ -62,31 +116,49 @@ interface TimeSlot {
 
 export function AgentBooking() {
   const { membership, bookAppointment } = useVisaStore()
-  const { t, dir } = useLanguage()
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+  const { t, language, dir } = useLanguage()
+  const [selectedAgent, setSelectedAgent] = useState<LocalizedAgent | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [appointmentType, setAppointmentType] = useState<'online' | 'inperson'>('inperson')
   const [notes, setNotes] = useState('')
   const [isBooking, setIsBooking] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
-  const [bookingDetails, setBookingDetails] = useState<any>(null)
+  const [bookingDetails, setBookingDetails] = useState<{ agent: LocalizedAgent; date: string; time: string; type: string; appointmentId: string } | null>(null)
 
   const isPremium = membership?.tier === 'premium'
 
-  const getAvailableDates = (agent: Agent) => {
+  const getLocalizedAgents = (): LocalizedAgent[] => {
+    return agentsData.map(agent => ({
+      id: agent.id,
+      name: language === 'ar' ? agent.data.nameAr : language === 'fr' ? agent.data.nameFr : agent.data.nameEn,
+      specialty: language === 'ar' ? agent.data.specialtyAr : language === 'fr' ? agent.data.specialtyFr : agent.data.specialtyEn,
+      location: language === 'ar' ? agent.data.locationAr : language === 'fr' ? agent.data.locationFr : agent.data.locationEn,
+      rating: agent.rating,
+      reviews: agent.reviews,
+      languages: language === 'ar' ? agent.languagesAr : language === 'fr' ? agent.languagesFr : agent.languagesEn,
+      availability: agent.availability,
+      photo: agent.photo,
+    }))
+  }
+
+  const getDayName = (day: number): string => {
+    const days = {
+      ar: ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
+      en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      fr: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+    }
+    return days[language][day]
+  }
+
+  const getAvailableDates = (agent: LocalizedAgent) => {
     const dates: string[] = []
     const today = new Date()
     let daysAdded = 0
-    const dayMap: Record<number, string> = {
-      0: 'الأحد', 1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء',
-      4: 'الخميس', 5: 'الجمعة', 6: 'السبت'
-    }
     
     while (daysAdded < 7) {
       const dayOfWeek = (today.getDay() + daysAdded + 1) % 7
-      const dayName = Object.entries(dayMap).find(([k]) => parseInt(k) === dayOfWeek)?.[1]
-      if (dayName && agent.availability.some(a => a === dayName)) {
+      if (agent.availability.includes(dayOfWeek)) {
         const date = new Date(today)
         date.setDate(today.getDate() + daysAdded + 1)
         dates.push(date.toISOString().split('T')[0])
@@ -112,11 +184,11 @@ export function AgentBooking() {
     
     setIsBooking(true)
     try {
-      const appointment = await bookAppointment({
+      await bookAppointment({
         visaType: 'tourist',
         appointmentDate: selectedDate,
         appointmentTime: selectedTime,
-        purpose: appointmentType === 'online' ? 'استشارة عبر الفيديو' : 'اجتماع شخصي',
+        purpose: appointmentType === 'online' ? 'Video Consultation' : 'In-person Meeting',
       })
       setBookingDetails({
         agent: selectedAgent,
@@ -126,8 +198,7 @@ export function AgentBooking() {
         appointmentId: `APT-${Date.now()}`
       })
       setBookingSuccess(true)
-    } catch (error) {
-      setBookingSuccess(true)
+    } catch {
       setBookingDetails({
         agent: selectedAgent,
         date: selectedDate,
@@ -135,6 +206,7 @@ export function AgentBooking() {
         type: appointmentType,
         appointmentId: `APT-${Date.now()}`
       })
+      setBookingSuccess(true)
     } finally {
       setIsBooking(false)
     }
@@ -151,12 +223,15 @@ export function AgentBooking() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('ar-DZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    const locale = language === 'ar' ? 'ar-DZ' : language === 'fr' ? 'fr-DZ' : 'en-US'
+    return date.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   }
+
+  const localizedAgents = getLocalizedAgents()
 
   if (bookingSuccess && bookingDetails) {
     return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+      <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
         <div className="max-w-lg mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -171,8 +246,8 @@ export function AgentBooking() {
             >
               <Check className="text-neon-cyan" size={40} />
             </motion.div>
-            <h2 className="text-2xl font-bold mb-2">تم الحجز بنجاح!</h2>
-            <p className="text-white/60">رقم الموعد: {bookingDetails.appointmentId}</p>
+            <h2 className="text-2xl font-bold mb-2">{t('bookingSuccess')}</h2>
+            <p className="text-white/60">{t('appointmentNumber')}: {bookingDetails.appointmentId}</p>
           </motion.div>
 
           <motion.div
@@ -206,7 +281,7 @@ export function AgentBooking() {
                 ) : (
                   <MapPin className="text-neon-cyan" size={18} />
                 )}
-                <span>{bookingDetails.type === 'online' ? 'استشارة عبر الفيديو' : bookingDetails.agent.location}</span>
+                <span>{bookingDetails.type === 'online' ? t('videoConsultation') : bookingDetails.agent.location}</span>
               </div>
             </div>
           </motion.div>
@@ -217,19 +292,19 @@ export function AgentBooking() {
             transition={{ delay: 0.4 }}
             className="glass-card p-4 mb-6"
           >
-            <h3 className="font-bold mb-3">التذكير</h3>
+            <h3 className="font-bold mb-3">{t('reminder')}</h3>
             <ul className="space-y-2 text-sm text-white/80">
               <li className="flex items-start gap-2">
                 <span className="w-2 h-2 bg-neon-cyan rounded-full mt-1.5" />
-                أحضر جميع الوثائق الأصلية
+                {t('bringOriginalDocs')}
               </li>
               <li className="flex items-start gap-2">
                 <span className="w-2 h-2 bg-neon-cyan rounded-full mt-1.5" />
-                الوصول قبل 15 دقيقة من الموعد
+                {t('arrive15minEarly')}
               </li>
               <li className="flex items-start gap-2">
                 <span className="w-2 h-2 bg-neon-cyan rounded-full mt-1.5" />
-                تأكيد عبر WhatsApp قبل يوم
+                {t('confirmViaWhatsApp')}
               </li>
             </ul>
           </motion.div>
@@ -242,7 +317,7 @@ export function AgentBooking() {
             onClick={resetBooking}
             className="neon-button w-full"
           >
-            حجز موعد جديد
+            {t('bookNewAppointment')}
           </motion.button>
         </div>
       </div>
@@ -250,15 +325,15 @@ export function AgentBooking() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">حجز موعد مع وكيل</h2>
-          <p className="text-white/60 text-sm">احجز موعداً شخصياً أو استشارة عبر الفيديو</p>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('bookAgentAppointment')}</h2>
+          <p className="text-white/60 text-sm">{t('bookAgentDesc')}</p>
         </motion.div>
 
         {!isPremium && (
@@ -272,8 +347,8 @@ export function AgentBooking() {
                 <AlertCircle className="text-neon-purple" size={20} />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-sm">هذه الخدمة متاحة فقط للمشتركين بريميوم</p>
-                <p className="text-xs text-white/60">اشترك الآن للحصول على جميع الخدمات المتقدمة</p>
+                <p className="font-medium text-sm">{t('premiumOnlyService')}</p>
+                <p className="text-xs text-white/60">{t('subscribeForAdvanced')}</p>
               </div>
             </div>
           </motion.div>
@@ -286,8 +361,8 @@ export function AgentBooking() {
             transition={{ delay: 0.1 }}
             className="space-y-4"
           >
-            <h3 className="font-bold">اختر الوكيل</h3>
-            {agents.map((agent, index) => (
+            <h3 className="font-bold">{t('selectAgent')}</h3>
+            {localizedAgents.map((agent, index) => (
               <motion.button
                 key={agent.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -343,7 +418,7 @@ export function AgentBooking() {
                   onClick={() => setSelectedAgent(null)}
                   className="text-xs text-white/50 underline"
                 >
-                  تغيير
+                  {t('change')}
                 </button>
               </div>
             </motion.div>
@@ -355,7 +430,7 @@ export function AgentBooking() {
                 transition={{ delay: 0.1 }}
                 className="mb-6"
               >
-                <h3 className="font-bold mb-3">اختر التاريخ</h3>
+                <h3 className="font-bold mb-3">{t('selectDate')}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {getAvailableDates(selectedAgent).map((date) => (
                     <motion.button
@@ -365,10 +440,10 @@ export function AgentBooking() {
                       className="glass-card-hover p-3 text-center"
                     >
                       <p className="text-xs text-white/50 mb-1">
-                        {new Date(date).toLocaleDateString('ar-DZ', { weekday: 'short' })}
+                        {new Date(date).toLocaleDateString(language === 'ar' ? 'ar-DZ' : language === 'fr' ? 'fr-DZ' : 'en-US', { weekday: 'short' })}
                       </p>
                       <p className="font-bold">
-                        {new Date(date).toLocaleDateString('ar-DZ', { day: 'numeric', month: 'short' })}
+                        {new Date(date).toLocaleDateString(language === 'ar' ? 'ar-DZ' : language === 'fr' ? 'fr-DZ' : 'en-US', { day: 'numeric', month: 'short' })}
                       </p>
                     </motion.button>
                   ))}
@@ -389,13 +464,13 @@ export function AgentBooking() {
                     onClick={() => setSelectedDate(null)}
                     className="text-xs text-white/50 underline"
                   >
-                    تغيير
+                    {t('change')}
                   </button>
                 </div>
 
                 {!selectedTime ? (
                   <>
-                    <h3 className="font-bold mb-3">اختر الوقت</h3>
+                    <h3 className="font-bold mb-3">{t('selectTime')}</h3>
                     <div className="grid grid-cols-4 gap-2">
                       {getTimeSlots().map((slot) => (
                         <motion.button
@@ -425,11 +500,11 @@ export function AgentBooking() {
                         onClick={() => setSelectedTime(null)}
                         className="text-xs text-white/50 underline"
                       >
-                        تغيير
+                        {t('change')}
                       </button>
                     </div>
 
-                    <h3 className="font-bold mb-3">نوع الموعد</h3>
+                    <h3 className="font-bold mb-3">{t('appointmentType')}</h3>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <motion.button
                         whileTap={{ scale: 0.95 }}
@@ -442,7 +517,7 @@ export function AgentBooking() {
                         )}
                       >
                         <MapPin className={cn('mx-auto mb-2', appointmentType === 'inperson' ? 'text-neon-purple' : 'text-white/50')} size={24} />
-                        <p className="font-medium text-sm">اجتماع شخصي</p>
+                        <p className="font-medium text-sm">{t('inPersonMeeting')}</p>
                         <p className="text-xs text-white/50">{selectedAgent.location}</p>
                       </motion.button>
                       <motion.button
@@ -456,17 +531,17 @@ export function AgentBooking() {
                         )}
                       >
                         <Video className={cn('mx-auto mb-2', appointmentType === 'online' ? 'text-neon-cyan' : 'text-white/50')} size={24} />
-                        <p className="font-medium text-sm">فيديو</p>
-                        <p className="text-xs text-white/50">عبر Zoom</p>
+                        <p className="font-medium text-sm">{t('video')}</p>
+                        <p className="text-xs text-white/50">{t('viaZoom')}</p>
                       </motion.button>
                     </div>
 
                     <div className="mb-6">
-                      <label className="text-sm text-white/70 mb-2 block">ملاحظات إضافية</label>
+                      <label className="text-sm text-white/70 mb-2 block">{t('additionalNotes')}</label>
                       <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="اكتب أي ملاحظات أو أسئلة..."
+                        placeholder={t('notesPlaceholder')}
                         className="input-field min-h-[80px] resize-none"
                       />
                     </div>
@@ -484,12 +559,12 @@ export function AgentBooking() {
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                             className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                           />
-                          جارٍ الحجز...
+                          {t('bookingInProgress')}
                         </>
                       ) : (
                         <>
                           <Check size={18} />
-                          تأكيد الحجز
+                          {t('confirmBooking')}
                         </>
                       )}
                     </motion.button>

@@ -1,0 +1,76 @@
+# VISA APP DEBUGGING PROMPT
+
+I'm working on a Next.js 14 app (VisaAI DZ) and have issues with data persistence in a multi-step form flow.
+
+## PROBLEM
+User fills ProfileSetup → starts Assessment (MultiStepForm) → results don't show
+
+## KEY FILES:
+
+### 1. `/src/store/visaStore.ts`
+```typescript
+interface UserProfile {
+  // ...all fields including:
+  age: number | null
+  maritalStatus: string | null
+  children: number
+  employmentType: string
+  monthlyIncome: number | null
+  bankBalance: number | null
+  // Travel fields:
+  schengenCount: number
+  previousStamps: string[]
+  visaRefusals: number
+  overstayHistory: boolean
+  // Trip fields:
+  targetCountry: string
+  purposeOfVisit: string
+  durationOfStay: string
+  entryType: 'single' | 'multiple' | ''
+  plannedTravelDate: string
+  plannedReturnDate: string
+  hasBookings: boolean
+  hasInsurance: boolean
+  hasInvitationLetter: boolean
+  isProfileComplete: boolean
+}
+
+// Key functions:
+updateProfile: (updates: Partial<UserProfile>) => void
+resetAssessment: () => void  // Only resets step/results, preserves profile
+runAssessment: () => Promise<AssessmentResult>  // Creates VisaProfile from userProfile, calls assessVisa()
+```
+
+### 2. `/src/components/MultiStepForm.tsx`
+- Has 4 steps: Personal, Work/Finance, Travel History, Next Trip
+- Each step uses `updateProfile()` to save data to store
+- When step 4 completes, it calls `runAssessment()` then `setActiveNav('results')`
+
+### 3. `/src/components/ResultsDashboard.tsx`
+- Shows `results` from store
+- If `results` is null, shows loading spinner
+
+## DEBUGGING QUESTIONS NEEDING ANSWERS:
+
+1. **Is `updateProfile` actually working?** Check if state updates are happening
+2. **Is `runAssessment` being called?** Add console logs
+3. **Is `results` being set in the store?**
+4. **Is there a reactivity issue?** Are components re-rendering when state changes?
+5. **Is there a hydration mismatch?** Server vs client state
+
+## WHAT I'VE TRIED:
+- Created `resetAssessment()` to not clear profile data
+- Added `runAssessment()` call in MultiStepForm
+- Added loading state in ResultsDashboard
+
+## REQUEST:
+Please examine these files and identify why:
+1. Data entered in ProfileSetup doesn't carry to MultiStepForm
+2. Data entered in MultiStepForm isn't being saved
+3. Results page shows nothing even after running assessment
+
+Look for:
+- Missing `await` or async issues
+- State not updating properly
+- Components not reading from correct state
+- Any logic errors in the data flow

@@ -74,7 +74,7 @@ export function ProAssessment() {
 
   if (loading) {
     return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10 flex items-center justify-center">
+      <div className="min-h-screen px-4 pt-20 pb-28 relative z-10 flex items-center justify-center">
         <div className="text-center">
           <motion.div
             className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta p-1"
@@ -85,8 +85,8 @@ export function ProAssessment() {
               <Sparkles className="text-neon-cyan" size={28} />
             </div>
           </motion.div>
-          <h2 className="text-xl font-bold mb-2 gradient-text">Analyzing...</h2>
-          <p className="text-white/60 text-sm">Generating your Pro Assessment</p>
+          <h2 className="text-xl font-bold mb-2 gradient-text">{t('analyzing')}</h2>
+          <p className="text-white/60 text-sm">{t('generatingProAssessment')}</p>
         </div>
       </div>
     )
@@ -94,10 +94,10 @@ export function ProAssessment() {
 
   if (error) {
     return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10 flex items-center justify-center">
+      <div className="min-h-screen px-4 pt-20 pb-28 relative z-10 flex items-center justify-center">
         <div className="text-center glass-card p-8 rounded-xl">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Error</h2>
+          <h2 className="text-xl font-bold mb-2">{t('error')}</h2>
           <p className="text-white/60">{error}</p>
         </div>
       </div>
@@ -107,7 +107,7 @@ export function ProAssessment() {
   const gradeColor = getGradeColor(result?.grade || 'F')
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <motion.div
@@ -120,8 +120,8 @@ export function ProAssessment() {
               <Shield className="text-white" size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Pro Assessment</h1>
-              <p className="text-xs text-white/60">Professional Analysis</p>
+              <h1 className="text-xl font-bold">{t('proAssessment')}</h1>
+              <p className="text-xs text-white/60">{t('professionalAnalysis')}</p>
             </div>
           </div>
         </motion.div>
@@ -224,7 +224,7 @@ export function ProAssessment() {
           {result?.aiAdvice?.length === 0 ? (
             <div className="text-center py-6">
               <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
-              <p className="text-white/70">Your application looks great!</p>
+              <p className="text-white/70">{t('applicationLooksGreat')}</p>
             </div>
           ) : (
             <div className="space-y-3">

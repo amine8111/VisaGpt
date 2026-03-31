@@ -1,615 +1,443 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Calendar, Bell, MapPin, Clock, CheckCircle, AlertCircle,
-  RefreshCw, Settings, BellRing, Volume2, Smartphone, Globe,
-  Loader2, Star, Filter, ChevronDown, Power, PowerOff, Trash2
+  Calendar, Bell, MapPin, Globe, Clock, AlertTriangle,
+  CheckCircle, Loader2, Sparkles, TrendingUp, Zap, 
+  ChevronRight, RefreshCw, Volume2, Settings, Trash2, Plus
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useLanguage } from './LanguageProvider'
-import { useVisaStore } from '@/store/visaStore'
+import { cn } from '@/lib/utils'
 
-interface Slot {
-  id: string
-  date: string
-  time: string
-  location: string
-  available: boolean
-  embassy: string
-}
-
-interface MonitorConfig {
+interface MonitoredSlot {
   id: string
   embassy: string
-  location: string
+  country: string
   visaType: string
-  dateFrom: string
-  dateTo: string
-  notifications: {
-    push: boolean
-    email: boolean
-    whatsapp: boolean
-  }
-  active: boolean
+  lastCheck: Date
+  status: 'available' | 'unavailable' | 'checking' | 'error'
+  availableSlots?: number
+  nextAvailable?: string
 }
 
-const locations = [
-  { id: 'algiers', name: 'الجزائر العاصمة', nameEn: 'Algiers' },
-  { id: 'oran', name: 'وهران', nameEn: 'Oran' },
-  { id: 'annaba', name: 'عنابة', nameEn: 'Annaba' },
-  { id: 'constantine', name: 'قسنطينة', nameEn: 'Constantine' },
-]
+interface NotificationSettings {
+  browser: boolean
+  email: boolean
+  sms: boolean
+  sound: boolean
+}
 
-const embassies = [
-  { id: 'france', name: 'فرنسا', nameEn: 'France', flag: '🇫🇷' },
-  { id: 'germany', name: 'ألمانيا', nameEn: 'Germany', flag: '🇩🇪' },
-  { id: 'spain', name: 'إسبانيا', nameEn: 'Spain', flag: '🇪🇸' },
-  { id: 'italy', name: 'إيطاليا', nameEn: 'Italy', flag: '🇮🇹' },
-  { id: 'netherlands', name: 'هولندا', nameEn: 'Netherlands', flag: '🇳🇱' },
-  { id: 'belgium', name: 'بلجيكا', nameEn: 'Belgium', flag: '🇧🇪' },
-  { id: 'uk', name: 'بريطانيا', nameEn: 'United Kingdom', flag: '🇬🇧' },
-  { id: 'usa', name: 'أمريكا', nameEn: 'United States', flag: '🇺🇸' },
+const embassyOptions = [
+  { id: 'france', name: 'France', nameAr: 'فرنسا', nameFr: 'France', location: 'Algiers' },
+  { id: 'germany', name: 'Germany', nameAr: 'ألمانيا', nameFr: 'Allemagne', location: 'Algiers' },
+  { id: 'spain', name: 'Spain', nameAr: 'إسبانيا', nameFr: 'Espagne', location: 'Algiers' },
+  { id: 'italy', name: 'Italy', nameAr: 'إيطاليا', nameFr: 'Italie', location: 'Algiers' },
+  { id: 'uk', name: 'United Kingdom', nameAr: 'المملكة المتحدة', nameFr: 'Royaume-Uni', location: 'Algiers' },
+  { id: 'usa', name: 'United States', nameAr: 'الولايات المتحدة', nameFr: 'États-Unis', location: 'Algiers' },
+  { id: 'netherlands', name: 'Netherlands', nameAr: 'هولندا', nameFr: 'Pays-Bas', location: 'Algiers' },
+  { id: 'belgium', name: 'Belgium', nameAr: 'بلجيكا', nameFr: 'Belgique', location: 'Algiers' },
 ]
 
 const visaTypes = [
-  { id: 'tourist', name: 'سياحة', nameEn: 'Tourist' },
-  { id: 'business', name: 'عمل', nameEn: 'Business' },
-  { id: 'student', name: 'دراسة', nameEn: 'Student' },
-  { id: 'family', name: 'عائلة', nameEn: 'Family' },
+  { id: 'schengen', name: 'Schengen Tourist', nameAr: 'شنغن سياحة', nameFr: 'Schengen Tourisme' },
+  { id: 'schengen_business', name: 'Schengen Business', nameAr: 'شنغن عمل', nameFr: 'Schengen Affaires' },
+  { id: 'uk_standard', name: 'UK Standard', nameAr: 'بريطانيا عادي', nameFr: 'UK Standard' },
+  { id: 'us_b1', name: 'US B1/B2', nameAr: 'أمريكا B1/B2', nameFr: 'US B1/B2' },
 ]
 
 export function SlotMonitor() {
-  const { t, dir, language } = useLanguage()
-  const { membership } = useVisaStore()
-  const [configs, setConfigs] = useState<MonitorConfig[]>([])
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [newConfig, setNewConfig] = useState({
-    embassy: 'france',
-    location: 'algiers',
-    visaType: 'tourist',
-    dateFrom: '',
-    dateTo: '',
-    notifications: { push: true, email: false, whatsapp: true }
-  })
+  const { t, language } = useLanguage()
+  const [monitoredSlots, setMonitoredSlots] = useState<MonitoredSlot[]>([])
+  const [isAddingNew, setIsAddingNew] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
-  const [lastScan, setLastScan] = useState<Date | null>(null)
-  const [slots, setSlots] = useState<Slot[]>([])
-  const [alertShown, setAlertShown] = useState(false)
-
-  const isPremium = membership?.tier === 'premium'
+  const [showSettings, setShowSettings] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    browser: true,
+    email: false,
+    sms: false,
+    sound: true
+  })
+  const [scanProgress, setScanProgress] = useState(0)
+  const [lastGlobalScan, setLastGlobalScan] = useState<Date | null>(null)
+  
+  const [newSlot, setNewSlot] = useState({
+    embassy: '',
+    visaType: 'schengen'
+  })
 
   useEffect(() => {
-    const savedConfigs = localStorage.getItem('slotMonitorConfigs')
-    if (savedConfigs) {
-      setConfigs(JSON.parse(savedConfigs))
+    const saved = localStorage.getItem('monitoredSlots')
+    if (saved) {
+      setMonitoredSlots(JSON.parse(saved))
     }
   }, [])
 
   useEffect(() => {
-    if (configs.length > 0 && configs.some(c => c.active)) {
-      startMonitoring()
+    if (monitoredSlots.length > 0) {
+      localStorage.setItem('monitoredSlots', JSON.stringify(monitoredSlots))
     }
-    return () => stopMonitoring()
-  }, [configs])
+  }, [monitoredSlots])
 
-  const saveConfigs = (newConfigs: MonitorConfig[]) => {
-    setConfigs(newConfigs)
-    localStorage.setItem('slotMonitorConfigs', JSON.stringify(newConfigs))
-  }
-
-  const startMonitoring = () => {
+  const scanAllSlots = async () => {
+    if (monitoredSlots.length === 0) return
+    
     setIsScanning(true)
-    simulateScanning()
-  }
-
-  const stopMonitoring = () => {
+    setScanProgress(0)
+    
+    for (let i = 0; i <= 100; i += 5) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      setScanProgress(i)
+    }
+    
+    setMonitoredSlots(prev => prev.map(slot => ({
+      ...slot,
+      status: Math.random() > 0.3 ? 'available' : 'unavailable',
+      lastCheck: new Date(),
+      availableSlots: Math.random() > 0.3 ? Math.floor(Math.random() * 20) + 1 : undefined
+    })))
+    
+    setLastGlobalScan(new Date())
     setIsScanning(false)
+    setScanProgress(0)
   }
 
-  const simulateScanning = () => {
-    if (!isScanning) return
+  const addNewMonitor = () => {
+    if (!newSlot.embassy) return
     
-    setTimeout(() => {
-      if (isScanning) {
-        setLastScan(new Date())
-        
-        const randomSlots: Slot[] = []
-        if (Math.random() > 0.7) {
-          const daysToAdd = Math.floor(Math.random() * 30) + 1
-          const date = new Date()
-          date.setDate(date.getDate() + daysToAdd)
-          
-          randomSlots.push({
-            id: `slot-${Date.now()}`,
-            date: date.toISOString().split('T')[0],
-            time: `${8 + Math.floor(Math.random() * 8)}:00`,
-            location: locations[Math.floor(Math.random() * locations.length)].name,
-            available: true,
-            embassy: embassies[Math.floor(Math.random() * embassies.length)].name
-          })
-        }
-        
-        if (randomSlots.length > 0) {
-          setSlots(randomSlots)
-          if (Notification.permission === 'granted') {
-            new Notification('🎉 موعد متاح!', {
-              body: 'تم العثور على موعد جديد! احجز الآن.',
-              icon: '/icon.png'
-            })
-          }
-        }
-        
-        simulateScanning()
-      }
-    }, 30000 + Math.random() * 60000)
-  }
-
-  const toggleConfig = (id: string) => {
-    const updated = configs.map(c => 
-      c.id === id ? { ...c, active: !c.active } : c
-    )
-    saveConfigs(updated)
-  }
-
-  const deleteConfig = (id: string) => {
-    const updated = configs.filter(c => c.id !== id)
-    saveConfigs(updated)
-  }
-
-  const addConfig = () => {
-    if (!newConfig.dateFrom || !newConfig.dateTo) return
+    const embassy = embassyOptions.find(e => e.id === newSlot.embassy)
+    const visaType = visaTypes.find(v => v.id === newSlot.visaType)
     
-    const config: MonitorConfig = {
-      id: `config-${Date.now()}`,
-      embassy: newConfig.embassy,
-      location: newConfig.location,
-      visaType: newConfig.visaType,
-      dateFrom: newConfig.dateFrom,
-      dateTo: newConfig.dateTo,
-      notifications: newConfig.notifications,
-      active: true
+    const newMonitor: MonitoredSlot = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      embassy: embassy?.name || newSlot.embassy,
+      country: embassy?.name || newSlot.embassy,
+      visaType: visaType?.name || newSlot.visaType,
+      lastCheck: new Date(),
+      status: 'checking'
     }
     
-    saveConfigs([...configs, config])
-    setShowAddModal(false)
-    setNewConfig({
-      embassy: 'france',
-      location: 'algiers',
-      visaType: 'tourist',
-      dateFrom: '',
-      dateTo: '',
-      notifications: { push: true, email: false, whatsapp: true }
-    })
+    setMonitoredSlots(prev => [...prev, newMonitor])
+    setNewSlot({ embassy: '', visaType: 'schengen' })
+    setIsAddingNew(false)
+    
+    setTimeout(() => scanAllSlots(), 500)
   }
 
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission()
-      if (permission === 'granted') {
-        new Notification('تم تفعيل الإشعارات!', {
-          body: 'سنخبرك فوراً عند توفر موعد.',
-        })
-      }
+  const removeMonitor = (id: string) => {
+    setMonitoredSlots(prev => prev.filter(s => s.id !== id))
+  }
+
+  const getCountryFlag = (country: string) => {
+    const flags: Record<string, string> = {
+      'France': '🇫🇷',
+      'Germany': '🇩🇪',
+      'Spain': '🇪🇸',
+      'Italy': '🇮🇹',
+      'United Kingdom': '🇬🇧',
+      'United States': '🇺🇸',
+      'Netherlands': '🇳🇱',
+      'Belgium': '🇧🇪',
     }
-  }
-
-  if (!isPremium) {
-    return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
-        <div className="max-w-lg mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <h2 className="text-2xl font-bold mb-2 gradient-text">متابعة مواعيد السفارات</h2>
-            <p className="text-white/60 text-sm">احصل على إشعار فور توفر موعد</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass-card p-4 mb-6 border-neon-purple/50"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-neon-purple/20 rounded-lg">
-                <AlertCircle className="text-neon-purple" size={20} />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">هذه الخدمة متاحة فقط للمشتركين بريميوم</p>
-                <p className="text-xs text-white/60">اشترك الآن للحصول على جميع الخدمات المتقدمة</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    )
+    return flags[country] || '🌍'
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen p-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="text-center mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">متابعة مواعيد السفارات</h2>
-          <p className="text-white/60 text-sm">نراقب المواعيد ونخبرك فور توفرها</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 mb-4">
+            <Bell className="text-emerald-400 animate-pulse" size={20} />
+            <span className="text-emerald-400 text-sm font-medium">AI-Powered Monitor</span>
+          </div>
+          <h1 className="text-3xl font-bold mb-2">
+            <span className="gradient-text-emerald">{t('slotMonitor')}</span>
+          </h1>
+          <p className="text-white/60">{t('slotMonitorDesc')}</p>
         </motion.div>
 
+        {/* Scan All Button */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-4 mb-6"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="card-ai mb-6"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                'w-3 h-3 rounded-full',
-                isScanning ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
-              )} />
-              <span className="text-sm font-medium">
-                {isScanning ? 'المراقبة نشطة' : 'المراقبة متوقفة'}
-              </span>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold">{language === 'ar' ? 'فحص شامل' : language === 'fr' ? 'Scan complet' : 'Full Scan'}</h3>
+              <p className="text-xs text-white/50">
+                {lastGlobalScan 
+                  ? `${language === 'ar' ? 'آخر فحص:' : language === 'fr' ? 'Dernier scan:' : 'Last scan:'} ${lastGlobalScan.toLocaleTimeString()}`
+                  : language === 'ar' ? 'لم يتم الفحص بعد' : language === 'fr' ? "Pas encore scanné" : 'Not scanned yet'}
+              </p>
             </div>
-            
-            {lastScan && (
-              <span className="text-xs text-white/50">
-                آخر فحص: {lastScan.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={isScanning ? stopMonitoring : startMonitoring}
+              onClick={scanAllSlots}
+              disabled={isScanning || monitoredSlots.length === 0}
               className={cn(
-                'flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2',
+                'px-6 py-3 rounded-xl font-bold flex items-center gap-2',
                 isScanning 
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/50' 
-                  : 'neon-button'
+                  ? 'bg-emerald-500/20 text-emerald-400' 
+                  : 'bg-gradient-to-r from-emerald-500 to-green-400 text-black'
               )}
             >
               {isScanning ? (
                 <>
-                  <PowerOff size={18} />
-                  إيقاف
+                  <Loader2 className="animate-spin" size={18} />
+                  <div className="w-20 h-2 bg-white/20 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-emerald-400"
+                      style={{ width: `${scanProgress}%` }}
+                    />
+                  </div>
                 </>
               ) : (
                 <>
-                  <Power size={18} />
-                  بدء المراقبة
+                  <Zap className="size-4" />
+                  {language === 'ar' ? 'فحص الكل' : language === 'fr' ? 'Scanner tout' : 'Scan All'}
                 </>
               )}
             </motion.button>
-            
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={requestNotificationPermission}
-              className="px-4 py-3 rounded-xl glass-card-hover flex items-center justify-center"
-              title="تفعيل الإشعارات"
-            >
-              <BellRing size={18} className="text-neon-cyan" />
-            </motion.button>
           </div>
         </motion.div>
 
-        {slots.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <div className="glass-card border-2 border-green-500/50 p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center animate-pulse">
-                  <Bell className="text-green-400" size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-green-400">🎉 موعد متاح!</h3>
-                  <p className="text-xs text-white/60">لقد تم العثور على موعد. احجز الآن!</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                {slots.map((slot) => (
-                  <div key={slot.id} className="bg-black/20 p-3 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-bold">{slot.date}</p>
-                        <p className="text-xs text-white/60">{slot.time} - {slot.location}</p>
-                      </div>
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                        متاح
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSlots([])}
-                className="w-full mt-3 py-2 rounded-lg bg-white/10 text-sm"
-              >
-                إغلاق
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-4 flex items-center justify-between"
-        >
-          <h3 className="font-bold">المتابعة ({configs.length})</h3>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-lg bg-neon-cyan/20 text-neon-cyan text-sm flex items-center gap-2"
-          >
-            <RefreshCw size={16} />
-            إضافة
-          </motion.button>
-        </motion.div>
-
-        {configs.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass-card p-8 text-center"
-          >
-            <Calendar className="mx-auto mb-4 text-white/30" size={48} />
-            <h3 className="font-bold mb-2">لا توجد متابعة</h3>
-            <p className="text-sm text-white/60 mb-4">
-              أضف سفارة لمتابعتها
-            </p>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAddModal(true)}
-              className="neon-button px-6 py-3"
-            >
-              إضافة متابعة
-            </motion.button>
-          </motion.div>
-        ) : (
-          <div className="space-y-3">
-            {configs.map((config) => {
-              const embassy = embassies.find(e => e.id === config.embassy)
-              const location = locations.find(l => l.id === config.location)
-              
-              return (
-                <motion.div
-                  key={config.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="glass-card p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">{embassy?.flag}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-bold">{embassy?.name}</h4>
-                        {config.active && isScanning && (
-                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                        )}
-                      </div>
-                      <p className="text-xs text-white/60">
-                        {location?.name} • {visaTypes.find(v => v.id === config.visaType)?.name}
-                      </p>
-                      <p className="text-xs text-white/50 mt-1">
-                        {config.dateFrom} - {config.dateTo}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {config.notifications.push && (
-                          <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs">
-                            <Smartphone size={12} className="inline mr-1" />
-                            Push
-                          </span>
-                        )}
-                        {config.notifications.whatsapp && (
-                          <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs">
-                            WhatsApp
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => toggleConfig(config.id)}
-                        className={cn(
-                          'p-2 rounded-lg',
-                          config.active 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-white/10 text-white/40'
-                        )}
-                      >
-                        <Power size={18} />
-                      </motion.button>
-                      
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => deleteConfig(config.id)}
-                        className="p-2 rounded-lg bg-red-500/10 text-red-400"
-                      >
-                        <Trash2 size={18} />
-                      </motion.button>
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
-
-        {showAddModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4"
-            onClick={() => setShowAddModal(false)}
-          >
+        {/* Add New Monitor */}
+        <AnimatePresence>
+          {isAddingNew ? (
             <motion.div
-              initial={{ y: 100 }}
-              animate={{ y: 0 }}
-              className="glass-card w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="card-ai mb-6"
             >
-              <h3 className="font-bold text-lg mb-4">إضافة متابعة جديدة</h3>
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+                <Plus className="text-neon-cyan" size={18} />
+                {language === 'ar' ? 'إضافة متابعة جديدة' : language === 'fr' ? 'Ajouter' : 'Add New Monitor'}
+              </h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-white/70 mb-2 block">السفارة</label>
+                  <label className="text-sm text-white/70 mb-2 block">{t('embassy')}</label>
                   <select
-                    value={newConfig.embassy}
-                    onChange={(e) => setNewConfig({ ...newConfig, embassy: e.target.value })}
-                    className="input-field"
+                    value={newSlot.embassy}
+                    onChange={(e) => setNewSlot({...newSlot, embassy: e.target.value})}
+                    className="w-full"
                   >
-                    {embassies.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.flag} {e.name}
+                    <option value="">{t('select')}</option>
+                    {embassyOptions.map(emb => (
+                      <option key={emb.id} value={emb.id}>
+                        {getCountryFlag(emb.name)} {language === 'ar' ? emb.nameAr : language === 'fr' ? emb.nameFr : emb.name}
                       </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="text-sm text-white/70 mb-2 block">الموقع</label>
+                  <label className="text-sm text-white/70 mb-2 block">{t('visaType')}</label>
                   <select
-                    value={newConfig.location}
-                    onChange={(e) => setNewConfig({ ...newConfig, location: e.target.value })}
-                    className="input-field"
+                    value={newSlot.visaType}
+                    onChange={(e) => setNewSlot({...newSlot, visaType: e.target.value})}
+                    className="w-full"
                   >
-                    {locations.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
+                    {visaTypes.map(vt => (
+                      <option key={vt.id} value={vt.id}>
+                        {language === 'ar' ? vt.nameAr : language === 'fr' ? vt.nameFr : vt.name}
                       </option>
                     ))}
                   </select>
                 </div>
-                
-                <div>
-                  <label className="text-sm text-white/70 mb-2 block">نوع التأشيرة</label>
-                  <select
-                    value={newConfig.visaType}
-                    onChange={(e) => setNewConfig({ ...newConfig, visaType: e.target.value })}
-                    className="input-field"
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsAddingNew(false)}
+                    className="btn-secondary flex-1"
                   >
-                    {visaTypes.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
-                    ))}
-                  </select>
+                    {t('cancel')}
+                  </button>
+                  <button
+                    onClick={addNewMonitor}
+                    disabled={!newSlot.embassy}
+                    className="btn-primary flex-1 disabled:opacity-50"
+                  >
+                    {language === 'ar' ? 'إضافة' : language === 'fr' ? 'Ajouter' : 'Add'}
+                  </button>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm text-white/70 mb-2 block">من تاريخ</label>
-                    <input
-                      type="date"
-                      value={newConfig.dateFrom}
-                      onChange={(e) => setNewConfig({ ...newConfig, dateFrom: e.target.value })}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/70 mb-2 block">إلى تاريخ</label>
-                    <input
-                      type="date"
-                      value={newConfig.dateTo}
-                      onChange={(e) => setNewConfig({ ...newConfig, dateTo: e.target.value })}
-                      className="input-field"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="text-sm text-white/70 mb-2 block">نوع الإشعارات</label>
-                  <div className="flex gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newConfig.notifications.push}
-                        onChange={(e) => setNewConfig({
-                          ...newConfig,
-                          notifications: { ...newConfig.notifications, push: e.target.checked }
-                        })}
-                        className="w-4 h-4"
-                      />
-                      <Smartphone size={16} />
-                      Push
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newConfig.notifications.whatsapp}
-                        onChange={(e) => setNewConfig({
-                          ...newConfig,
-                          notifications: { ...newConfig.notifications, whatsapp: e.target.checked }
-                        })}
-                        className="w-4 h-4"
-                      />
-                      WhatsApp
-                    </label>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-3 mt-6">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 rounded-xl glass-card-hover"
-                >
-                  إلغاء
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={addConfig}
-                  disabled={!newConfig.dateFrom || !newConfig.dateTo}
-                  className="flex-1 py-3 rounded-xl neon-button disabled:opacity-50"
-                >
-                  إضافة
-                </motion.button>
               </div>
             </motion.div>
+          ) : (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsAddingNew(true)}
+              className="w-full glass-card-hover p-4 mb-6 flex items-center justify-center gap-2"
+            >
+              <Plus className="text-neon-cyan" size={20} />
+              <span className="font-bold">{language === 'ar' ? 'إضافة متابعة جديدة' : language === 'fr' ? 'Ajouter une nouvelle surveillance' : 'Add New Monitor'}</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* Monitored Slots */}
+        {monitoredSlots.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="font-bold mb-3">{language === 'ar' ? 'السفارات المتابعة' : language === 'fr' ? 'Ambassades surveillées' : 'Monitored Embassies'}</h3>
+            <div className="space-y-3">
+              {monitoredSlots.map((slot, index) => (
+                <motion.div
+                  key={slot.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={cn(
+                    'glass-card p-4',
+                    slot.status === 'available' && 'border-emerald-500/50',
+                    slot.status === 'unavailable' && 'border-white/10',
+                    slot.status === 'checking' && 'border-yellow-500/50'
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        'w-12 h-12 rounded-xl flex items-center justify-center text-2xl',
+                        slot.status === 'available' && 'bg-emerald-500/20',
+                        slot.status === 'unavailable' && 'bg-white/10',
+                        slot.status === 'checking' && 'bg-yellow-500/20'
+                      )}>
+                        {slot.status === 'checking' ? (
+                          <Loader2 className="text-yellow-400 animate-spin" size={24} />
+                        ) : slot.status === 'available' ? (
+                          <span className="animate-bounce">🎉</span>
+                        ) : (
+                          <span>😔</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{getCountryFlag(slot.country)}</span>
+                          <h4 className="font-bold">{slot.embassy}</h4>
+                        </div>
+                        <p className="text-sm text-white/50">{slot.visaType}</p>
+                        <p className="text-xs text-white/30 mt-1">
+                          {language === 'ar' ? 'آخر فحص:' : language === 'fr' ? 'Dernière vérification:' : 'Last check:'} {new Date(slot.lastCheck).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {slot.status === 'available' && slot.availableSlots && (
+                        <div className="text-right">
+                          <div className="text-emerald-400 font-bold text-lg">{slot.availableSlots}</div>
+                          <div className="text-xs text-white/50">{language === 'ar' ? 'متاح' : 'available'}</div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeMonitor(slot.id)}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="text-white/50 hover:text-red-400" size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {slot.status === 'available' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="mt-4 pt-4 border-t border-white/10"
+                    >
+                      <div className="bg-emerald-500/10 p-3 rounded-xl text-center">
+                        <p className="text-emerald-400 font-bold text-lg mb-1">
+                          🎉 {language === 'ar' ? 'موعد متاح!' : language === 'fr' ? 'Rendez-vous disponible!' : 'Slot Available!'}
+                        </p>
+                        <p className="text-sm text-white/70">
+                          {slot.availableSlots} {language === 'ar' ? 'موعد متاح' : language === 'fr' ? 'disponible(s)' : 'slot(s) available'}
+                        </p>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          className="mt-3 btn-primary w-full"
+                        >
+                          {language === 'ar' ? 'احجز الآن' : language === 'fr' ? 'Réserver maintenant' : 'Book Now'}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {slot.status === 'unavailable' && (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-white/50">
+                      <Clock size={14} />
+                      <span>{language === 'ar' ? 'لا توجد مواعيد حالياً' : language === 'fr' ? 'Pas de créneaux actuellement' : 'No slots currently'}</span>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="card-ai text-center py-12"
+          >
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+              <Calendar className="text-emerald-400" size={40} />
+            </div>
+            <h3 className="font-bold text-lg mb-2">{language === 'ar' ? 'لا توجد متابعة' : language === 'fr' ? 'Pas de surveillance' : 'No Monitors Yet'}</h3>
+            <p className="text-white/50 text-sm mb-4">
+              {language === 'ar' 
+                ? 'أضف سفارة لمتابعتها وسنخبرك فور توفر موعد'
+                : language === 'fr' 
+                ? 'Ajoutez une ambassade et nous vous informerons'
+                : 'Add an embassy to monitor and we\'ll notify you when a slot is available'}
+            </p>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsAddingNew(true)}
+              className="btn-primary"
+            >
+              <Plus className="inline-block ml-2" size={16} />
+              {language === 'ar' ? 'إضافة متابعة' : language === 'fr' ? 'Ajouter' : 'Add Monitor'}
+            </motion.button>
           </motion.div>
         )}
 
+        {/* AI Insights */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-6 glass-card p-4"
+          transition={{ delay: 0.3 }}
+          className="mt-6"
         >
-          <h4 className="font-bold mb-3 flex items-center gap-2">
-            <AlertCircle size={16} className="text-yellow-400" />
-            معلومات مهمة
-          </h4>
-          <ul className="space-y-2 text-sm text-white/70">
-            <li className="flex items-start gap-2">
-              <span className="w-2 h-2 bg-neon-cyan rounded-full mt-1.5 flex-shrink-0" />
-              المواعيد تنفد بسرعة - كن مستعداً
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="w-2 h-2 bg-neon-cyan rounded-full mt-1.5 flex-shrink-0" />
-              تفعيل الإشعارات يضمن عدم فقدان فرصة
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="w-2 h-2 bg-neon-cyan rounded-full mt-1.5 flex-shrink-0" />
-              الفحص كل 30-60 ثانية
-            </li>
-          </ul>
+          <h3 className="font-bold mb-3 flex items-center gap-2">
+            <Sparkles className="text-neon-cyan" size={18} />
+            {language === 'ar' ? 'نصائح الذكاء الاصطناعي' : language === 'fr' ? "Conseils de l'IA" : 'AI Tips'}
+          </h3>
+          <div className="grid grid-cols-1 gap-3">
+            {[
+              { icon: Clock, title: language === 'ar' ? 'أفضل وقت للتقديم' : 'Best Time to Apply', desc: language === 'ar' ? 'الساعة 8-10 صباحاً' : '8-10 AM', color: 'neon-cyan' },
+              { icon: TrendingUp, title: language === 'ar' ? 'أقل Embassies ازدحاماً' : 'Least Busy', desc: language === 'ar' ? 'اسبانيا وألمانيا' : 'Spain & Germany', color: 'neon-purple' },
+              { icon: AlertTriangle, title: language === 'ar' ? 'تحذير' : 'Warning', desc: language === 'ar' ? 'فرنسا دائماً ممتلئة' : 'France always full', color: 'amber-400' },
+            ].map((tip, i) => (
+              <div key={i} className="glass-card p-4 flex items-center gap-3">
+                <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center bg-white/10')}>
+                  <tip.icon className={cn(`text-${tip.color}`)} size={20} />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{tip.title}</p>
+                  <p className="text-xs text-white/50">{tip.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </div>

@@ -230,17 +230,17 @@ export function BilingualChatCoach() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10 flex flex-col">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10 flex flex-col">
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-4"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">مدرب الدردشة الذكي</h2>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('bilingualChatCoach')}</h2>
           <p className="text-white/60 text-sm flex items-center gap-2">
             <Languages size={16} />
-            {language === 'ar' ? 'دعم بالعربية والفرنسية' : 'Support in Arabic & French'}
+            {t('supportArabicFrench')}
           </p>
         </motion.div>
 
@@ -350,7 +350,7 @@ export function BilingualChatCoach() {
               className="flex items-center gap-2 text-sm text-neon-cyan mb-2"
             >
               {showQuickQuestions ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              {language === 'ar' ? 'أسئلة سريعة' : 'Quick Questions'}
+              {t('quickQuestions')}
             </button>
             
             {showQuickQuestions && (
@@ -364,7 +364,7 @@ export function BilingualChatCoach() {
                     onClick={() => handleQuickQuestion(q)}
                     className="px-3 py-2 bg-white/5 rounded-full text-xs text-white/70 hover:bg-white/10 transition-colors"
                   >
-                    {q.question}
+                    {language === 'ar' ? q.question : q.questionEn}
                   </motion.button>
                 ))}
               </div>
@@ -383,16 +383,16 @@ export function BilingualChatCoach() {
             className="flex items-center gap-2 text-sm text-yellow-400 mb-2"
           >
             {showCulturalTips ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            نصائح ثقافية
+            {t('culturalTips')}
           </button>
           
           {showCulturalTips && (
             <div className="glass-card p-4 space-y-4">
               {culturalTips.map((tip, i) => (
                 <div key={i}>
-                  <h4 className="font-bold text-sm mb-2">{tip.title}</h4>
+                  <h4 className="font-bold text-sm mb-2">{language === 'ar' ? tip.title : tip.titleEn}</h4>
                   <ul className="space-y-1">
-                    {tip.tipsAr.map((t, j) => (
+                    {(language === 'ar' ? tip.tipsAr : tip.tips).map((t, j) => (
                       <li key={j} className="flex items-start gap-2 text-xs text-white/70">
                         <Check size={12} className="text-green-400 mt-0.5 flex-shrink-0" />
                         {t}
@@ -411,7 +411,7 @@ export function BilingualChatCoach() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={language === 'ar' ? 'اكتب سؤالك هنا...' : 'Ask your question...'}
+            placeholder={t('typeYourQuestion')}
             className="flex-1 bg-transparent outline-none text-sm"
           />
           <motion.button

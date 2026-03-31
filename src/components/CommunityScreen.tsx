@@ -4,68 +4,95 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Users, MessageCircle, Heart, Share2, Award } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLanguage } from './LanguageProvider'
 
-interface Post {
-  id: number
-  name: string
-  country: string
+interface PostData {
+  nameAr: string
+  nameEn: string
+  nameFr: string
+  countryCode: string
   flag: string
-  date: string
-  content: string
+  contentAr: string
+  contentEn: string
+  contentFr: string
   likes: number
   comments: number
   type: 'success' | 'tip' | 'question'
 }
 
-const posts: Post[] = [
+const postsData: PostData[] = [
   {
-    id: 1,
-    name: 'أحمد من الجزائر',
-    country: 'France',
+    nameAr: 'أحمد من الجزائر',
+    nameEn: 'Ahmed from Algiers',
+    nameFr: 'Ahmed d\'Alger',
+    countryCode: 'FR',
     flag: '🇫🇷',
-    date: 'منذ يومين',
-    content: 'الحمدلله! حصلت على تأشيرة شنغن من المحاولة الثانية. الفضل يرجع لله ثم لمتابعة النصائح هنا. أهم شيء كان كشف حساب ب 6 أشهر.',
+    contentAr: 'الحمدلله! حصلت على تأشيرة شنغن من المحاولة الثانية. الفضل يرجع لله ثم لمتابعة النصائح هنا. أهم شيء كان كشف حساب ب 6 أشهر.',
+    contentEn: 'Praise God! I got my Schengen visa on the second attempt. The credit goes to God then following the tips here. The most important thing was a 6-month bank statement.',
+    contentFr: 'Praise Allah ! J\'ai obtenu mon visa Schengen à la deuxième tentative. Le mérite revient à Dieu puis aux conseils ici. La chose la plus importante était un relevé bancaire de 6 mois.',
     likes: 45,
     comments: 12,
     type: 'success',
   },
   {
-    id: 2,
-    name: 'سارة من وهران',
-    country: 'Canada',
+    nameAr: 'سارة من وهران',
+    nameEn: 'Sarah from Oran',
+    nameFr: 'Sarah d\'Oran',
+    countryCode: 'CA',
     flag: '🇨🇦',
-    date: 'منذ 3 أيام',
-    content: 'نصيحة مهمة: لا تنسوا أن ترسلوا شهادة الميلاد مصدقة إذا كان لديكم أطفال.服务中心 طلبوها مني فجأة.',
+    contentAr: 'نصيحة مهمة: لا تنسوا أن ترسلوا شهادة الميلاد مصدقة إذا كان لديكم أطفال.服务中心 طلبوها مني فجأة.',
+    contentEn: 'Important tip: Don\'t forget to send a certified birth certificate if you have children. They requested it from me suddenly.',
+    contentFr: 'Conseil important : N\'oubliez pas d\'envoyer un acte de naissance certifié si vous avez des enfants. Ils me l\'ont demandé soudainement.',
     likes: 38,
     comments: 8,
     type: 'tip',
   },
   {
-    id: 3,
-    name: 'كريم من قسنطينة',
-    country: 'Spain',
+    nameAr: 'كريم من قسنطينة',
+    nameEn: 'Karim from Constantine',
+    nameFr: 'Karim de Constantine',
+    countryCode: 'ES',
     flag: '🇪🇸',
-    date: 'منذ أسبوع',
-    content: 'موعدي في TLS وهران كان متاح مباشرة بدون انتظار! لا تستعجلوا الحجز في الجزائر العاصمة.',
+    contentAr: 'موعدي في TLS وهران كان متاح مباشرة بدون انتظار! لا تستعجلوا الحجز في الجزائر العاصمة.',
+    contentEn: 'My appointment at TLS Oran was available immediately without waiting! Don\'t rush booking in Algiers.',
+    contentFr: 'Mon rendez-vous à TLS Oran était disponible immédiatement sans attente ! Ne vous précipitez pas pour réserver à Alger.',
     likes: 52,
     comments: 15,
     type: 'tip',
   },
 ]
 
+interface Post extends PostData {
+  id: number
+  date: string
+}
+
 export function CommunityScreen() {
+  const { t, language } = useLanguage()
   const [activeTab, setActiveTab] = useState<'feed' | 'top'>('feed')
 
+  const posts: Post[] = postsData.map((post, index) => ({
+    ...post,
+    id: index + 1,
+    date: new Date(Date.now() - index * 86400000).toLocaleDateString(language === 'ar' ? 'ar-DZ' : language === 'fr' ? 'fr-DZ' : 'en-US'),
+  }))
+
+  const getLocalizedContent = (post: PostData) => {
+    if (language === 'ar') return { name: post.nameAr, content: post.contentAr }
+    if (language === 'fr') return { name: post.nameFr, content: post.contentFr }
+    return { name: post.nameEn, content: post.contentEn }
+  }
+
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">مجتمع التأشيرة</h2>
-          <p className="text-white/60 text-sm">قصص نجاح ونصائح من المتقدمين</p>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('communityTitle')}</h2>
+          <p className="text-white/60 text-sm">{t('communityDescription')}</p>
         </motion.div>
 
         <motion.div
@@ -83,7 +110,7 @@ export function CommunityScreen() {
                 : 'glass-card-hover'
             )}
           >
-            آخر المشاركات
+            {t('latestPosts')}
           </button>
           <button
             onClick={() => setActiveTab('top')}
@@ -95,7 +122,7 @@ export function CommunityScreen() {
             )}
           >
             <Award size={16} />
-            أفضل المساهمين
+            {t('topContributors')}
           </button>
         </motion.div>
 
@@ -114,7 +141,7 @@ export function CommunityScreen() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{post.name}</span>
+                    <span className="font-medium text-sm">{getLocalizedContent(post).name}</span>
                     <span className="text-lg">{post.flag}</span>
                   </div>
                   <p className="text-xs text-white/50">{post.date}</p>
@@ -125,14 +152,14 @@ export function CommunityScreen() {
                   post.type === 'tip' && 'bg-neon-cyan/20 text-neon-cyan',
                   post.type === 'question' && 'bg-yellow-500/20 text-yellow-400'
                 )}>
-                  {post.type === 'success' && 'نجاح'}
-                  {post.type === 'tip' && 'نصيحة'}
-                  {post.type === 'question' && 'سؤال'}
+                  {post.type === 'success' && t('success')}
+                  {post.type === 'tip' && t('tip')}
+                  {post.type === 'question' && t('question')}
                 </div>
               </div>
 
               <p className="text-sm text-white/80 leading-relaxed mb-4">
-                {post.content}
+                {getLocalizedContent(post).content}
               </p>
 
               <div className="flex items-center gap-6 text-white/50">
@@ -163,7 +190,7 @@ export function CommunityScreen() {
             className="w-full neon-button flex items-center justify-center gap-2"
           >
             <MessageCircle size={18} />
-            شارك قصتك
+            {t('shareYourStory')}
           </motion.button>
         </motion.div>
       </div>

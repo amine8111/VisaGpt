@@ -4,29 +4,38 @@ import { motion } from 'framer-motion'
 import { FileText, Download, Search, Share2, Eye } from 'lucide-react'
 import { documentTemplates } from '@/lib/utils'
 import { useState } from 'react'
+import { useLanguage } from './LanguageProvider'
 
 export function DocumentTemplates() {
+  const { t } = useLanguage()
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const categories = ['الكل', 'عائلي', 'تأشيرة', 'عمل', 'مالي', 'سفر']
+  const categories = [
+    { id: 'all', label: t('allCategories') },
+    { id: 'family', label: t('family') },
+    { id: 'visa', label: t('visa') },
+    { id: 'work', label: t('work') },
+    { id: 'financial', label: t('financial') },
+    { id: 'travel', label: t('travel') },
+  ]
 
   const filteredTemplates = documentTemplates.filter((template) => {
-    const matchesCategory = selectedCategory === 'الكل' || template.category === selectedCategory
-    const matchesSearch = template.name.includes(searchQuery) || template.description.includes(searchQuery)
+    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) || template.description.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesCategory && matchesSearch
   })
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">نماذج الوثائق</h2>
-          <p className="text-white/60 text-sm">حمّل نماذج جاهزة للوثائق المطلوبة</p>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('documentTemplates')}</h2>
+          <p className="text-white/60 text-sm">{t('documentTemplatesDesc')}</p>
         </motion.div>
 
         <motion.div
@@ -40,7 +49,7 @@ export function DocumentTemplates() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ابحث عن نموذج..."
+            placeholder={t('searchForTemplate')}
             className="input-field pr-12"
           />
         </motion.div>
@@ -53,15 +62,15 @@ export function DocumentTemplates() {
         >
           {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
               className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
-                selectedCategory === cat
+                selectedCategory === cat.id
                   ? 'neon-button'
                   : 'glass-card-hover text-white/70'
               }`}
             >
-              {cat}
+              {cat.label}
             </button>
           ))}
         </motion.div>
@@ -83,7 +92,7 @@ export function DocumentTemplates() {
                   <h3 className="font-bold mb-1">{template.name}</h3>
                   <p className="text-sm text-white/60 mb-2">{template.description}</p>
                   <span className="inline-block px-2 py-1 bg-white/10 rounded-full text-xs text-white/50">
-                    {template.category}
+                    {t(template.category) || template.category}
                   </span>
                 </div>
               </div>
@@ -94,14 +103,14 @@ export function DocumentTemplates() {
                   className="flex-1 py-2 rounded-xl glass-card-hover flex items-center justify-center gap-2 text-sm"
                 >
                   <Eye size={16} />
-                  معاينة
+                  {t('preview')}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   className="flex-1 py-2 rounded-xl neon-button flex items-center justify-center gap-2 text-sm"
                 >
                   <Download size={16} />
-                  تحميل
+                  {t('downloadTemplate')}
                 </motion.button>
               </div>
             </motion.div>
@@ -115,7 +124,7 @@ export function DocumentTemplates() {
             className="text-center py-12"
           >
             <FileText className="mx-auto mb-4 text-white/20" size={48} />
-            <p className="text-white/50">لم يتم العثور على نماذج</p>
+            <p className="text-white/50">{t('noTemplatesFound')}</p>
           </motion.div>
         )}
       </div>

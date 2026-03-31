@@ -11,16 +11,36 @@ interface FormField {
   id: string
   label: string
   labelAr: string
+  labelFr: string
   type: 'text' | 'date' | 'select' | 'textarea'
   value: string
-  options?: { value: string; label: string }[]
+  options?: FormFieldOption[]
   required?: boolean
   section: string
 }
 
+interface FormFieldOption {
+  value: string
+  label: string
+  labelAr: string
+  labelFr: string
+}
+
+const getLocalizedLabel = (field: FormField, language: string) => {
+  if (language === 'ar') return field.labelAr
+  if (language === 'fr') return field.labelFr
+  return field.label
+}
+
+const getLocalizedOption = (opt: FormFieldOption, language: string) => {
+  if (language === 'ar') return opt.labelAr
+  if (language === 'fr') return opt.labelFr
+  return opt.label
+}
+
 export function SchengenForm() {
   const { membership, user } = useVisaStore()
-  const { t, dir } = useLanguage()
+  const { t, dir, language } = useLanguage()
   const [currentSection, setCurrentSection] = useState(0)
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [showPreview, setShowPreview] = useState(false)
@@ -29,103 +49,109 @@ export function SchengenForm() {
 
   const isGold = membership?.tier === 'gold' || membership?.tier === 'premium'
 
+  const getLocalizedSectionName = (section: { name: string; nameEn: string; nameAr: string; nameFr: string }) => {
+    if (language === 'ar') return section.nameAr
+    if (language === 'fr') return section.nameFr
+    return section.nameEn
+  }
+
   const sections = [
-    { id: 'personal', name: 'المعلومات الشخصية', nameEn: 'Personal Information' },
-    { id: 'passport', name: 'معلومات الجواز', nameEn: 'Passport Information' },
-    { id: 'travel', name: 'معلومات السفر', nameEn: 'Travel Information' },
-    { id: 'accommodation', name: 'السكن', nameEn: 'Accommodation' },
-    { id: 'financial', name: 'المعلومات المالية', nameEn: 'Financial Information' },
-    { id: 'employment', name: 'معلومات العمل', nameEn: 'Employment Information' },
+    { id: 'personal', name: 'Personal Information', nameEn: 'Personal Information', nameAr: 'المعلومات الشخصية', nameFr: 'Informations Personnelles' },
+    { id: 'passport', name: 'Passport Information', nameEn: 'Passport Information', nameAr: 'معلومات الجواز', nameFr: 'Informations Passeport' },
+    { id: 'travel', name: 'Travel Information', nameEn: 'Travel Information', nameAr: 'معلومات السفر', nameFr: 'Informations de Voyage' },
+    { id: 'accommodation', name: 'Accommodation', nameEn: 'Accommodation', nameAr: 'السكن', nameFr: 'Hébergement' },
+    { id: 'financial', name: 'Financial Information', nameEn: 'Financial Information', nameAr: 'المعلومات المالية', nameFr: 'Informations Financières' },
+    { id: 'employment', name: 'Employment Information', nameEn: 'Employment Information', nameAr: 'معلومات العمل', nameFr: 'Informations Employment' },
   ]
 
   const sectionFields: Record<string, FormField[]> = {
     personal: [
-      { id: 'surname', label: 'Surname (Family name)', labelAr: 'اسم العائلة', type: 'text', value: '', required: true, section: 'personal' },
-      { id: 'givenNames', label: 'Given names', labelAr: 'الاسم الشخصي', type: 'text', value: '', required: true, section: 'personal' },
-      { id: 'surnameBorn', label: 'Surname at birth', labelAr: 'اسم العائلة عند الولادة', type: 'text', value: '', section: 'personal' },
-      { id: 'givenNamesBorn', label: 'Given names at birth', labelAr: 'الاسم الشخصي عند الولادة', type: 'text', value: '', section: 'personal' },
-      { id: 'dateOfBirth', label: 'Date of birth', labelAr: 'تاريخ الميلاد', type: 'date', value: '', required: true, section: 'personal' },
-      { id: 'placeOfBirth', label: 'Place of birth', labelAr: 'مكان الميلاد', type: 'text', value: '', required: true, section: 'personal' },
-      { id: 'countryOfBirth', label: 'Country of birth', labelAr: 'بلد الميلاد', type: 'select', value: 'DZ', options: [{ value: 'DZ', label: 'Algeria' }], required: true, section: 'personal' },
-      { id: 'nationality', label: 'Current nationality', labelAr: 'الجنسية الحالية', type: 'select', value: 'DZ', options: [{ value: 'DZ', label: 'Algeria' }], required: true, section: 'personal' },
-      { id: 'sex', label: 'Sex', labelAr: 'الجنس', type: 'select', value: '', options: [{ value: 'M', label: 'Male' }, { value: 'F', label: 'Female' }], required: true, section: 'personal' },
-      { id: 'maritalStatus', label: 'Marital status', labelAr: 'الحالة الاجتماعية', type: 'select', value: '', options: [{ value: 'single', label: 'Single' }, { value: 'married', label: 'Married' }, { value: 'divorced', label: 'Divorced' }, { value: 'widowed', label: 'Widowed' }], required: true, section: 'personal' },
-      { id: 'nationalId', label: 'National ID number', labelAr: 'رقم بطاقة الهوية', type: 'text', value: '', section: 'personal' },
+      { id: 'surname', label: 'Surname (Family name)', labelAr: 'اسم العائلة', labelFr: 'Nom de famille', type: 'text', value: '', required: true, section: 'personal' },
+      { id: 'givenNames', label: 'Given names', labelAr: 'الاسم الشخصي', labelFr: 'Prénoms', type: 'text', value: '', required: true, section: 'personal' },
+      { id: 'surnameBorn', label: 'Surname at birth', labelAr: 'اسم العائلة عند الولادة', labelFr: 'Nom de naissance', type: 'text', value: '', section: 'personal' },
+      { id: 'givenNamesBorn', label: 'Given names at birth', labelAr: 'الاسم الشخصي عند الولادة', labelFr: 'Prénoms de naissance', type: 'text', value: '', section: 'personal' },
+      { id: 'dateOfBirth', label: 'Date of birth', labelAr: 'تاريخ الميلاد', labelFr: 'Date de naissance', type: 'date', value: '', required: true, section: 'personal' },
+      { id: 'placeOfBirth', label: 'Place of birth', labelAr: 'مكان الميلاد', labelFr: 'Lieu de naissance', type: 'text', value: '', required: true, section: 'personal' },
+      { id: 'countryOfBirth', label: 'Country of birth', labelAr: 'بلد الميلاد', labelFr: 'Pays de naissance', type: 'select', value: 'DZ', options: [{ value: 'DZ', label: 'Algeria', labelAr: 'الجزائر', labelFr: 'Algérie' }], required: true, section: 'personal' },
+      { id: 'nationality', label: 'Current nationality', labelAr: 'الجنسية الحالية', labelFr: 'Nationalité actuelle', type: 'select', value: 'DZ', options: [{ value: 'DZ', label: 'Algeria', labelAr: 'الجزائر', labelFr: 'Algérie' }], required: true, section: 'personal' },
+      { id: 'sex', label: 'Sex', labelAr: 'الجنس', labelFr: 'Sexe', type: 'select', value: '', options: [{ value: 'M', label: 'Male', labelAr: 'ذكر', labelFr: 'Masculin' }, { value: 'F', label: 'Female', labelAr: 'أنثى', labelFr: 'Féminin' }], required: true, section: 'personal' },
+      { id: 'maritalStatus', label: 'Marital status', labelAr: 'الحالة الاجتماعية', labelFr: 'État civil', type: 'select', value: '', options: [{ value: 'single', label: 'Single', labelAr: 'أعزب/عزباء', labelFr: 'Célibataire' }, { value: 'married', label: 'Married', labelAr: 'متزوج/ة', labelFr: 'Marié(e)' }, { value: 'divorced', label: 'Divorced', labelAr: 'مطلق/ة', labelFr: 'Divorcé(e)' }, { value: 'widowed', label: 'Widowed', labelAr: 'أرمل/ة', labelFr: 'Veuf/Veuve' }], required: true, section: 'personal' },
+      { id: 'nationalId', label: 'National ID number', labelAr: 'رقم بطاقة الهوية', labelFr: 'Numéro CNI', type: 'text', value: '', section: 'personal' },
     ],
     passport: [
-      { id: 'passportType', label: 'Travel document type', labelAr: 'نوع وثيقة السفر', type: 'select', value: 'ordinary', options: [{ value: 'ordinary', label: 'Ordinary Passport' }], required: true, section: 'passport' },
-      { id: 'passportNumber', label: 'Travel document number', labelAr: 'رقم الجواز', type: 'text', value: '', required: true, section: 'passport' },
-      { id: 'passportIssueDate', label: 'Date of issue', labelAr: 'تاريخ الإصدار', type: 'date', value: '', required: true, section: 'passport' },
-      { id: 'passportExpiry', label: 'Date of expiry', labelAr: 'تاريخ الانتهاء', type: 'date', value: '', required: true, section: 'passport' },
-      { id: 'issuingAuthority', label: 'Issuing authority', labelAr: 'الجهة المصدرة', type: 'text', value: '', required: true, section: 'passport' },
+      { id: 'passportType', label: 'Travel document type', labelAr: 'نوع وثيقة السفر', labelFr: 'Type de document', type: 'select', value: 'ordinary', options: [{ value: 'ordinary', label: 'Ordinary Passport', labelAr: 'جواز سفر عادي', labelFr: 'Passeport ordinaire' }], required: true, section: 'passport' },
+      { id: 'passportNumber', label: 'Travel document number', labelAr: 'رقم الجواز', labelFr: 'Numéro du passeport', type: 'text', value: '', required: true, section: 'passport' },
+      { id: 'passportIssueDate', label: 'Date of issue', labelAr: 'تاريخ الإصدار', labelFr: 'Date de délivrance', type: 'date', value: '', required: true, section: 'passport' },
+      { id: 'passportExpiry', label: 'Date of expiry', labelAr: 'تاريخ الانتهاء', labelFr: 'Date d\'expiration', type: 'date', value: '', required: true, section: 'passport' },
+      { id: 'issuingAuthority', label: 'Issuing authority', labelAr: 'الجهة المصدرة', labelFr: 'Autorité émettrice', type: 'text', value: '', required: true, section: 'passport' },
     ],
     travel: [
-      { id: 'entryCountry', label: 'Member State of destination', labelAr: 'دولة الوجهة', type: 'select', value: '', options: [
-        { value: 'FR', label: 'France' },
-        { value: 'DE', label: 'Germany' },
-        { value: 'ES', label: 'Spain' },
-        { value: 'IT', label: 'Italy' },
-        { value: 'PT', label: 'Portugal' },
-        { value: 'NL', label: 'Netherlands' },
-        { value: 'BE', label: 'Belgium' },
-        { value: 'AT', label: 'Austria' },
-        { value: 'CH', label: 'Switzerland' },
-        { value: 'GR', label: 'Greece' },
+      { id: 'entryCountry', label: 'Member State of destination', labelAr: 'دولة الوجهة', labelFr: 'État membre de destination', type: 'select', value: '', options: [
+        { value: 'FR', label: 'France', labelAr: 'فرنسا', labelFr: 'France' },
+        { value: 'DE', label: 'Germany', labelAr: 'ألمانيا', labelFr: 'Allemagne' },
+        { value: 'ES', label: 'Spain', labelAr: 'إسبانيا', labelFr: 'Espagne' },
+        { value: 'IT', label: 'Italy', labelAr: 'إيطاليا', labelFr: 'Italie' },
+        { value: 'PT', label: 'Portugal', labelAr: 'البرتغال', labelFr: 'Portugal' },
+        { value: 'NL', label: 'Netherlands', labelAr: 'هولندا', labelFr: 'Pays-Bas' },
+        { value: 'BE', label: 'Belgium', labelAr: 'بلجيكا', labelFr: 'Belgique' },
+        { value: 'AT', label: 'Austria', labelAr: 'النمسا', labelFr: 'Autriche' },
+        { value: 'CH', label: 'Switzerland', labelAr: 'سويسرا', labelFr: 'Suisse' },
+        { value: 'GR', label: 'Greece', labelAr: 'اليونان', labelFr: 'Grèce' },
       ], required: true, section: 'travel' },
-      { id: 'purpose', label: 'Purpose of journey', labelAr: 'غرض الرحلة', type: 'select', value: '', options: [
-        { value: 'tourism', label: 'Tourism' },
-        { value: 'business', label: 'Business' },
-        { value: 'family', label: 'Family visit' },
-        { value: 'study', label: 'Study' },
-        { value: 'cultural', label: 'Cultural' },
-        { value: 'sports', label: 'Sports' },
-        { value: 'medical', label: 'Medical reasons' },
-        { value: 'transit', label: 'Transit' },
-        { value: 'official', label: 'Official visit' },
+      { id: 'purpose', label: 'Purpose of journey', labelAr: 'غرض الرحلة', labelFr: 'Motif du voyage', type: 'select', value: '', options: [
+        { value: 'tourism', label: 'Tourism', labelAr: 'سياحة', labelFr: 'Tourisme' },
+        { value: 'business', label: 'Business', labelAr: 'عمل', labelFr: 'Affaires' },
+        { value: 'family', label: 'Family visit', labelAr: 'زيارة عائلية', labelFr: 'Visite familiale' },
+        { value: 'study', label: 'Study', labelAr: 'دراسة', labelFr: 'Études' },
+        { value: 'cultural', label: 'Cultural', labelAr: 'ثقافي', labelFr: 'Culturel' },
+        { value: 'sports', label: 'Sports', labelAr: 'رياضي', labelFr: 'Sports' },
+        { value: 'medical', label: 'Medical reasons', labelAr: 'أسباب طبية', labelFr: 'Raisons médicales' },
+        { value: 'transit', label: 'Transit', labelAr: 'ترانزيت', labelFr: 'Transit' },
+        { value: 'official', label: 'Official visit', labelAr: 'زيارة رسمية', labelFr: 'Visite officielle' },
       ], required: true, section: 'travel' },
-      { id: 'arrivalDate', label: 'Intended date of arrival', labelAr: 'تاريخ الوصول المتوقع', type: 'date', value: '', required: true, section: 'travel' },
-      { id: 'departureDate', label: 'Intended date of departure', labelAr: 'تاريخ المغادرة المتوقع', type: 'date', value: '', required: true, section: 'travel' },
-      { id: 'entryPlaces', label: 'Intended places of entry', labelAr: 'أماكن الدخول المتوقع', type: 'text', value: '', section: 'travel' },
-      { id: 'numEntries', label: 'Number of entries', labelAr: 'عدد الدخول', type: 'select', value: '', options: [
-        { value: 'single', label: 'Single entry' },
-        { value: 'double', label: 'Double entry' },
-        { value: 'multiple', label: 'Multiple entries' },
+      { id: 'arrivalDate', label: 'Intended date of arrival', labelAr: 'تاريخ الوصول المتوقع', labelFr: 'Date d\'arrivée prévue', type: 'date', value: '', required: true, section: 'travel' },
+      { id: 'departureDate', label: 'Intended date of departure', labelAr: 'تاريخ المغادرة المتوقع', labelFr: 'Date de départ prévue', type: 'date', value: '', required: true, section: 'travel' },
+      { id: 'entryPlaces', label: 'Intended places of entry', labelAr: 'أماكن الدخول المتوقع', labelFr: 'Lieux d\'entrée prévus', type: 'text', value: '', section: 'travel' },
+      { id: 'numEntries', label: 'Number of entries', labelAr: 'عدد الدخول', labelFr: 'Nombre d\'entrées', type: 'select', value: '', options: [
+        { value: 'single', label: 'Single entry', labelAr: 'دخول مرة واحدة', labelFr: 'Une seule entrée' },
+        { value: 'double', label: 'Double entry', labelAr: 'دخول مرتين', labelFr: 'Double entrée' },
+        { value: 'multiple', label: 'Multiple entries', labelAr: 'دخول متعدد', labelFr: 'Entrées multiples' },
       ], required: true, section: 'travel' },
     ],
     accommodation: [
-      { id: 'hostType', label: 'Type of accommodation', labelAr: 'نوع السكن', type: 'select', value: '', options: [
-        { value: 'hotel', label: 'Hotel' },
-        { value: 'rental', label: 'Rented accommodation' },
-        { value: 'private', label: 'Private accommodation' },
-        { value: 'other', label: 'Other' },
+      { id: 'hostType', label: 'Type of accommodation', labelAr: 'نوع السكن', labelFr: 'Type d\'hébergement', type: 'select', value: '', options: [
+        { value: 'hotel', label: 'Hotel', labelAr: 'فندق', labelFr: 'Hôtel' },
+        { value: 'rental', label: 'Rented accommodation', labelAr: 'سكن مؤجر', labelFr: 'Logement loué' },
+        { value: 'private', label: 'Private accommodation', labelAr: 'سكن خاص', labelFr: 'Logement privé' },
+        { value: 'other', label: 'Other', labelAr: 'أخرى', labelFr: 'Autre' },
       ], required: true, section: 'accommodation' },
-      { id: 'hostName', label: 'Name of host/company', labelAr: 'اسم المضيف/الشركة', type: 'text', value: '', required: true, section: 'accommodation' },
-      { id: 'hostAddress', label: 'Address', labelAr: 'العنوان', type: 'textarea', value: '', required: true, section: 'accommodation' },
-      { id: 'hostPhone', label: 'Phone', labelAr: 'الهاتف', type: 'text', value: '', required: true, section: 'accommodation' },
-      { id: 'hostEmail', label: 'Email', labelAr: 'البريد الإلكتروني', type: 'text', value: '', section: 'accommodation' },
+      { id: 'hostName', label: 'Name of host/company', labelAr: 'اسم المضيف/الشركة', labelFr: 'Nom de l\'hôte/entreprise', type: 'text', value: '', required: true, section: 'accommodation' },
+      { id: 'hostAddress', label: 'Address', labelAr: 'العنوان', labelFr: 'Adresse', type: 'textarea', value: '', required: true, section: 'accommodation' },
+      { id: 'hostPhone', label: 'Phone', labelAr: 'الهاتف', labelFr: 'Téléphone', type: 'text', value: '', required: true, section: 'accommodation' },
+      { id: 'hostEmail', label: 'Email', labelAr: 'البريد الإلكتروني', labelFr: 'Courriel', type: 'text', value: '', section: 'accommodation' },
     ],
     financial: [
-      { id: 'financialMeans', label: 'Means of subsistence', labelAr: 'وسائل العيش', type: 'select', value: '', options: [
-        { value: 'cash', label: 'Cash' },
-        { value: 'credit', label: 'Credit cards' },
-        { value: 'sponsor', label: 'Sponsorship' },
-        { value: 'accommodation', label: 'Accommodation provided' },
+      { id: 'financialMeans', label: 'Means of subsistence', labelAr: 'وسائل العيش', labelFr: 'Moyens d\'existence', type: 'select', value: '', options: [
+        { value: 'cash', label: 'Cash', labelAr: 'نقداً', labelFr: 'Espèces' },
+        { value: 'credit', label: 'Credit cards', labelAr: 'بطاقات الائتمان', labelFr: 'Cartes de crédit' },
+        { value: 'sponsor', label: 'Sponsorship', labelAr: 'ضمان', labelFr: 'Parrainage' },
+        { value: 'accommodation', label: 'Accommodation provided', labelAr: 'السكن متوفر', labelFr: 'Hébergement fourni' },
       ], required: true, section: 'financial' },
-      { id: 'monthlyIncome', label: 'Monthly income (EUR)', labelAr: 'الدخل الشهري (يورو)', type: 'text', value: '', section: 'financial' },
-      { id: 'bankBalance', label: 'Available funds (EUR)', labelAr: 'الأموال المتاحة (يورو)', type: 'text', value: '', section: 'financial' },
-      { id: 'hasInsurance', label: 'Travel medical insurance', labelAr: 'التأمين الصحي', type: 'select', value: '', options: [
-        { value: 'yes', label: 'Yes' },
-        { value: 'no', label: 'No' },
+      { id: 'monthlyIncome', label: 'Monthly income (EUR)', labelAr: 'الدخل الشهري (يورو)', labelFr: 'Revenu mensuel (EUR)', type: 'text', value: '', section: 'financial' },
+      { id: 'bankBalance', label: 'Available funds (EUR)', labelAr: 'الأموال المتاحة (يورو)', labelFr: 'Fonds disponibles (EUR)', type: 'text', value: '', section: 'financial' },
+      { id: 'hasInsurance', label: 'Travel medical insurance', labelAr: 'التأمين الصحي', labelFr: 'Assurance médicale', type: 'select', value: '', options: [
+        { value: 'yes', label: 'Yes', labelAr: 'نعم', labelFr: 'Oui' },
+        { value: 'no', label: 'No', labelAr: 'لا', labelFr: 'Non' },
       ], required: true, section: 'financial' },
-      { id: 'insuranceProvider', label: 'Insurance provider', labelAr: 'شركة التأمين', type: 'text', value: '', section: 'financial' },
-      { id: 'insuranceCoverage', label: 'Coverage amount (EUR)', labelAr: 'مبلغ التغطية (يورو)', type: 'text', value: '', section: 'financial' },
+      { id: 'insuranceProvider', label: 'Insurance provider', labelAr: 'شركة التأمين', labelFr: 'Assureur', type: 'text', value: '', section: 'financial' },
+      { id: 'insuranceCoverage', label: 'Coverage amount (EUR)', labelAr: 'مبلغ التغطية (يورو)', labelFr: 'Montant de couverture (EUR)', type: 'text', value: '', section: 'financial' },
     ],
     employment: [
-      { id: 'employmentStatus', label: 'Current occupation', labelAr: 'المهنة الحالية', type: 'text', value: '', required: true, section: 'employment' },
-      { id: 'employerName', label: 'Employer name', labelAr: 'اسم صاحب العمل', type: 'text', value: '', section: 'employment' },
-      { id: 'employerAddress', label: 'Employer address', labelAr: 'عنوان العمل', type: 'textarea', value: '', section: 'employment' },
-      { id: 'employerPhone', label: 'Employer phone', labelAr: 'هاتف العمل', type: 'text', value: '', section: 'employment' },
-      { id: 'employerEmail', label: 'Employer email', labelAr: 'بريد العمل', type: 'text', value: '', section: 'employment' },
+      { id: 'employmentStatus', label: 'Current occupation', labelAr: 'المهنة الحالية', labelFr: 'Profession actuelle', type: 'text', value: '', required: true, section: 'employment' },
+      { id: 'employerName', label: 'Employer name', labelAr: 'اسم صاحب العمل', labelFr: 'Nom de l\'employeur', type: 'text', value: '', section: 'employment' },
+      { id: 'employerAddress', label: 'Employer address', labelAr: 'عنوان العمل', labelFr: 'Adresse de l\'employeur', type: 'textarea', value: '', section: 'employment' },
+      { id: 'employerPhone', label: 'Employer phone', labelAr: 'هاتف العمل', labelFr: 'Téléphone employeur', type: 'text', value: '', section: 'employment' },
+      { id: 'employerEmail', label: 'Employer email', labelAr: 'بريد العمل', labelFr: 'Email employeur', type: 'text', value: '', section: 'employment' },
     ],
   }
 
@@ -171,7 +197,7 @@ export function SchengenForm() {
     }
     
     content += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    content += `تم الإنشاء بواسطة VisaAI DZ - ${new Date().toLocaleDateString('ar-DZ')}\n`
+    content += `تم الإنشاء بواسطة VisaGPT - ${new Date().toLocaleDateString('ar-DZ')}\n`
     
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -186,15 +212,15 @@ export function SchengenForm() {
 
   if (!isGold) {
     return (
-      <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+      <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
         <div className="max-w-lg mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <h2 className="text-2xl font-bold mb-2 gradient-text">استمارة شنغن</h2>
-            <p className="text-white/60 text-sm">تعبئة تلقائية لاستمارة شنغن</p>
+            <h2 className="text-2xl font-bold mb-2 gradient-text">{t('schengenForm')}</h2>
+            <p className="text-white/60 text-sm">{t('schengenFormDesc')}</p>
           </motion.div>
 
           <motion.div
@@ -207,8 +233,8 @@ export function SchengenForm() {
                 <AlertCircle className="text-yellow-400" size={20} />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-sm">هذه الخدمة متاحة فقط للمشتركين ذهبي أو بريميوم</p>
-                <p className="text-xs text-white/60">اشترك للحصول على تعبئة تلقائية</p>
+                <p className="font-medium text-sm">{t('premiumRequired')}</p>
+                <p className="text-xs text-white/60">{t('premiumRequiredDesc')}</p>
               </div>
             </div>
           </motion.div>
@@ -218,15 +244,15 @@ export function SchengenForm() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-4"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">استمارة شنغن</h2>
-          <p className="text-white/60 text-sm">أكمل البيانات التالية</p>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('schengenForm')}</h2>
+          <p className="text-white/60 text-sm">{t('schengenFormFill')}</p>
         </motion.div>
 
         <div className="flex items-center justify-between mb-4">
@@ -235,12 +261,12 @@ export function SchengenForm() {
             className="text-xs text-neon-cyan flex items-center gap-1"
           >
             <FileText size={14} />
-            تعبئة تلقائية من الملف
+            {t('autoFill')}
           </button>
           {saved && (
             <span className="text-xs text-green-400 flex items-center gap-1">
               <Check size={14} />
-              تم الحفظ
+              {t('saved')}
             </span>
           )}
         </div>
@@ -256,7 +282,7 @@ export function SchengenForm() {
                 currentSection !== index && 'bg-white/5 text-white/60'
               )}
             >
-              {section.name}
+              {getLocalizedSectionName(section)}
             </button>
           ))}
         </div>
@@ -270,7 +296,7 @@ export function SchengenForm() {
           {currentFields.map((field) => (
             <div key={field.id}>
               <label className="text-sm text-white/70 mb-2 flex items-center gap-2">
-                {field.labelAr}
+                {getLocalizedLabel(field, language)}
                 {field.required && <span className="text-red-400">*</span>}
               </label>
               
@@ -280,10 +306,10 @@ export function SchengenForm() {
                   onChange={(e) => updateField(field.id, e.target.value)}
                   className="input-field"
                 >
-                  <option value="">اختر...</option>
+                  <option value="">{t('select')}</option>
                   {field.options?.map((opt) => (
                     <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {getLocalizedOption(opt, language)}
                     </option>
                   ))}
                 </select>
@@ -292,7 +318,7 @@ export function SchengenForm() {
                   value={formData[field.id] || ''}
                   onChange={(e) => updateField(field.id, e.target.value)}
                   className="input-field min-h-[80px] resize-none"
-                  placeholder={field.labelAr}
+                  placeholder={getLocalizedLabel(field, language)}
                 />
               ) : (
                 <input
@@ -300,7 +326,7 @@ export function SchengenForm() {
                   value={formData[field.id] || ''}
                   onChange={(e) => updateField(field.id, e.target.value)}
                   className="input-field"
-                  placeholder={field.labelAr}
+                  placeholder={getLocalizedLabel(field, language)}
                 />
               )}
             </div>
@@ -324,7 +350,7 @@ export function SchengenForm() {
               onClick={() => setCurrentSection(prev => prev + 1)}
               className="flex-1 neon-button flex items-center justify-center gap-2"
             >
-              التالي
+              {t('next')}
               <ArrowRight size={18} />
             </motion.button>
           ) : (
@@ -334,7 +360,7 @@ export function SchengenForm() {
               className="flex-1 neon-button flex items-center justify-center gap-2"
             >
               <Download size={18} />
-              تحميل الاستمارة
+              {t('downloadForm')}
             </motion.button>
           )}
         </div>
@@ -352,12 +378,12 @@ export function SchengenForm() {
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full"
               />
-              جارٍ الحفظ...
+              {t('saving')}
             </>
           ) : (
             <>
               <Save size={18} />
-              حفظ البيانات
+              {t('saveData')}
             </>
           )}
         </motion.button>
@@ -365,10 +391,10 @@ export function SchengenForm() {
         <div className="mt-6 glass-card p-4">
           <h4 className="font-bold mb-2 flex items-center gap-2">
             <AlertCircle size={16} className="text-yellow-400" />
-            ملاحظة مهمة
+            {t('importantNote')}
           </h4>
           <p className="text-xs text-white/60">
-            هذه الاستمارة للمساعدة فقط. يجب تقديم الطلب رسمياً عبر موقع السفارات أو مراكز TLS/VFS.
+            {t('schengenDisclaimer')}
           </p>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import {
   authAPI,
   appointmentAPI,
@@ -23,6 +24,8 @@ import {
   type DocumentCheck,
   type RiskAnalysisResult,
 } from '@/lib/ai'
+
+export type CameraState = 'IDLE' | 'STREAMING' | 'CAPTURED' | 'ERROR';
 
 export interface Advice {
   id: number
@@ -62,6 +65,7 @@ export interface UserProfile {
   
   // Employment
   profession: string
+  employmentStatus: string
   employmentType: string
   employerName: string
   employerAddress: string
@@ -100,6 +104,7 @@ export interface UserProfile {
   passport: File | null
   bankStatement: File | null
   employmentProof: File | null
+  passportPhoto: string | null
   
   // Profile completion
   isProfileComplete: boolean
@@ -122,6 +127,8 @@ interface VisaStore {
   interviewAnswers: Record<string, AnswerEvaluation>
   documents: DocumentCheck[]
   riskAnalysis: RiskAnalysisResult | null
+  cameraState: CameraState
+  setCameraState: (state: CameraState) => void
   previewTier: 'gold' | 'premium' | null
   setPreviewTier: (tier: 'gold' | 'premium' | null) => void
   selectedTier: 'free' | 'gold' | 'premium'
@@ -185,6 +192,7 @@ const initialProfile: UserProfile = {
   
   // Employment
   profession: '',
+  employmentStatus: '',
   employmentType: '',
   employerName: '',
   employerAddress: '',
@@ -223,12 +231,15 @@ const initialProfile: UserProfile = {
   passport: null,
   bankStatement: null,
   employmentProof: null,
+  passportPhoto: null,
   
   // Profile completion
   isProfileComplete: false,
 }
 
-export const useVisaStore = create<VisaStore>((set, get) => ({
+export const useVisaStore = create<VisaStore>()(
+  persist(
+    (set, get) => ({
   currentStep: 0,
   userProfile: initialProfile,
   results: null,
@@ -245,6 +256,8 @@ export const useVisaStore = create<VisaStore>((set, get) => ({
   interviewAnswers: {},
   documents: [],
   riskAnalysis: null,
+  cameraState: 'IDLE' as CameraState,
+  setCameraState: (cameraState) => set({ cameraState }),
   previewTier: null as 'gold' | 'premium' | null,
   setPreviewTier: (tier) => set((state) => ({
     previewTier: tier,
@@ -558,7 +571,14 @@ export const useVisaStore = create<VisaStore>((set, get) => ({
   },
 
   setError: (error) => set({ error }),
-}))
+    }),
+    {
+      name: 'visa-gpt-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ userProfile: state.userProfile }),
+    }
+  )
+)
 
 const DZD_EUR = 145
 

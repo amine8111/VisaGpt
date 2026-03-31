@@ -4,57 +4,87 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Scan, CheckCircle, AlertTriangle, XCircle, Upload, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLanguage } from './LanguageProvider'
 
 interface CheckResult {
-  name: string
+  nameAr: string
+  nameEn: string
+  nameFr: string
   status: 'pass' | 'warning' | 'fail'
-  message: string
+  messageAr: string
+  messageEn: string
+  messageFr: string
 }
 
 interface DocumentCheck {
   id: string
-  name: string
+  nameAr: string
+  nameEn: string
+  nameFr: string
   checks: CheckResult[]
   overallScore: number
 }
 
-const mockResults: DocumentCheck[] = [
+const mockResultsData: DocumentCheck[] = [
   {
     id: 'passport',
-    name: 'جواز السفر',
+    nameAr: 'جواز السفر',
+    nameEn: 'Passport',
+    nameFr: 'Passeport',
     overallScore: 95,
     checks: [
-      { name: 'صلاحية جواز السفر', status: 'pass', message: 'صالحة حتى 2028' },
-      { name: 'صفحة البيانات واضحة', status: 'pass', message: 'جميع البيانات مقروءة' },
-      { name: 'صورة الجواز', status: 'pass', message: 'صالحة للاستخدام' },
+      { nameAr: 'صلاحية جواز السفر', nameEn: 'Passport validity', nameFr: 'Validité du passeport', status: 'pass', messageAr: 'صالحة حتى 2028', messageEn: 'Valid until 2028', messageFr: 'Valide jusqu\'en 2028' },
+      { nameAr: 'صفحة البيانات واضحة', nameEn: 'Data page clear', nameFr: 'Page de données claire', status: 'pass', messageAr: 'جميع البيانات مقروءة', messageEn: 'All data is readable', messageFr: 'Toutes les données sont lisibles' },
+      { nameAr: 'صورة الجواز', nameEn: 'Passport photo', nameFr: 'Photo du passeport', status: 'pass', messageAr: 'صالحة للاستخدام', messageEn: 'Valid for use', messageFr: 'Valide pour utilisation' },
     ],
   },
   {
     id: 'bank',
-    name: 'كشف الحساب البنكي',
+    nameAr: 'كشف الحساب البنكي',
+    nameEn: 'Bank Statement',
+    nameFr: 'Relevé bancaire',
     overallScore: 72,
     checks: [
-      { name: 'الحد الأدنى للرصيد', status: 'warning', message: 'الرصيد 180,000 دج - يُنصح بـ 200,000 دج' },
-      { name: 'مدة الكشوف', status: 'pass', message: '6 أشهر كاملة' },
-      { name: 'حركات غير عادية', status: 'fail', message: 'إيداع كبير 800,000 دج قد يُعتبر مشبوه' },
+      { nameAr: 'الحد الأدنى للرصيد', nameEn: 'Minimum balance', nameFr: 'Solde minimum', status: 'warning', messageAr: 'الرصيد 180,000 دج - يُنصح بـ 200,000 دج', messageEn: 'Balance 180,000 DZD - recommended 200,000 DZD', messageFr: 'Solde 180 000 DZD - recommandé 200 000 DZD' },
+      { nameAr: 'مدة الكشوف', nameEn: 'Statement period', nameFr: 'Période des relevés', status: 'pass', messageAr: '6 أشهر كاملة', messageEn: 'Full 6 months', messageFr: '6 mois complets' },
+      { nameAr: 'حركات غير عادية', nameEn: 'Unusual transactions', nameFr: 'Transactions inhabituelles', status: 'fail', messageAr: 'إيداع كبير 800,000 دج قد يُعتبر مشبوه', messageEn: 'Large deposit 800,000 DZD may be considered suspicious', messageFr: 'Gros dépôt de 800 000 DZD peut être considéré suspect' },
     ],
   },
   {
     id: 'employment',
-    name: 'شهادة العمل',
+    nameAr: 'شهادة العمل',
+    nameEn: 'Employment Certificate',
+    nameFr: 'Attestation d\'emploi',
     overallScore: 88,
     checks: [
-      { name: 'بياناتEmployer', status: 'pass', message: 'الاسم والعنوان صحيحان' },
-      { name: 'التاريخ', status: 'pass', message: 'موقعة حديثاً' },
-      { name: 'الختم', status: 'warning', message: 'الختم غير واضح - يُنصح بإعادة التوقيع' },
+      { nameAr: 'بياناتEmployer', nameEn: 'Employer data', nameFr: 'Données employeur', status: 'pass', messageAr: 'الاسم والعنوان صحيحان', messageEn: 'Name and address correct', messageFr: 'Nom et adresse corrects' },
+      { nameAr: 'التاريخ', nameEn: 'Date', nameFr: 'Date', status: 'pass', messageAr: 'موقعة حديثاً', messageEn: 'Recently signed', messageFr: 'Signé récemment' },
+      { nameAr: 'الختم', nameEn: 'Stamp', nameFr: 'Cachet', status: 'warning', messageAr: 'الختم غير واضح - يُنصح بإعادة التوقيع', messageEn: 'Stamp unclear - recommend re-signing', messageFr: 'Cachet peu clair - recommandé de resigné' },
     ],
   },
 ]
 
 export function DocumentScanner() {
+  const { t, language } = useLanguage()
   const [isScanning, setIsScanning] = useState(false)
   const [scanComplete, setScanComplete] = useState(false)
   const [activeTab, setActiveTab] = useState<'results' | 'upload'>('results')
+
+  const getLocalizedText = (item: { ar: string; en: string; fr: string }) => {
+    if (language === 'ar') return item.ar
+    if (language === 'fr') return item.fr
+    return item.en
+  }
+
+  const mockResults = mockResultsData.map(doc => ({
+    ...doc,
+    name: getLocalizedText({ ar: doc.nameAr, en: doc.nameEn, fr: doc.nameFr }),
+    checks: doc.checks.map(check => ({
+      ...check,
+      name: getLocalizedText({ ar: check.nameAr, en: check.nameEn, fr: check.nameFr }),
+      message: getLocalizedText({ ar: check.messageAr, en: check.messageEn, fr: check.messageFr }),
+    })),
+  }))
 
   const handleScan = () => {
     setIsScanning(true)
@@ -84,15 +114,15 @@ export function DocumentScanner() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">فاحص الوثائق</h2>
-          <p className="text-white/60 text-sm">تحقق من امتثال وثائقك للمتطلبات</p>
+          <h2 className="text-2xl font-bold mb-2 gradient-text">{t('documentScanner')}</h2>
+          <p className="text-white/60 text-sm">{t('documentScannerDesc')}</p>
         </motion.div>
 
         <div className="flex gap-2 mb-6">
@@ -103,7 +133,7 @@ export function DocumentScanner() {
               activeTab === 'results' ? 'neon-button' : 'glass-card-hover'
             )}
           >
-            النتائج
+            {t('results')}
           </button>
           <button
             onClick={() => setActiveTab('upload')}
@@ -112,7 +142,7 @@ export function DocumentScanner() {
               activeTab === 'upload' ? 'neon-button' : 'glass-card-hover'
             )}
           >
-            رفع وثيقة
+            {t('uploadDocument')}
           </button>
         </div>
 
@@ -124,22 +154,22 @@ export function DocumentScanner() {
           >
             <div className="upload-zone p-8 text-center">
               <Camera className="mx-auto mb-4 text-neon-cyan" size={48} />
-              <p className="font-medium mb-2">التقط صورة أو ارفع ملف</p>
-              <p className="text-sm text-white/50 mb-4">PNG, JPG, PDF - حتى 10MB</p>
+              <p className="font-medium mb-2">{t('takePictureOrUpload')}</p>
+              <p className="text-sm text-white/50 mb-4">{t('fileFormats')}</p>
               <div className="flex gap-3 justify-center">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   className="neon-button flex items-center gap-2"
                 >
                   <Camera size={18} />
-                  كاميرا
+                  {t('camera')}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   className="glass-card-hover py-2 px-4 flex items-center gap-2"
                 >
                   <Upload size={18} />
-                  رفع
+                  {t('upload')}
                 </motion.button>
               </div>
             </div>
@@ -157,12 +187,12 @@ export function DocumentScanner() {
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                   />
-                  جارٍ الفحص...
+                  {t('scanning')}
                 </>
               ) : (
                 <>
                   <Scan size={18} />
-                  بدء الفحص
+                  {t('startScan')}
                 </>
               )}
             </motion.button>
@@ -175,9 +205,9 @@ export function DocumentScanner() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="glass-card p-6 text-center mb-6"
               >
-                <p className="text-sm text-white/60 mb-2">النتيجة الإجمالية</p>
+                <p className="text-sm text-white/60 mb-2">{t('overallResult')}</p>
                 <div className="text-6xl font-bold gradient-text">85%</div>
-                <p className="text-white/60 mt-2">وثائقك شبه جاهزة!</p>
+                <p className="text-white/60 mt-2">{t('documentsAlmostReady')}</p>
               </motion.div>
             )}
 
@@ -216,7 +246,7 @@ export function DocumentScanner() {
                 className="neon-button w-full flex items-center justify-center gap-2"
               >
                 <Scan size={18} />
-                فحص جميع الوثائق
+                {t('scanAllDocuments')}
               </motion.button>
             )}
           </div>

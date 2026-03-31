@@ -5,9 +5,12 @@ import { useState } from 'react'
 import { 
   Camera, FileText, PenTool, Scan, Building2, Calendar, 
   MessageSquare, Globe, Users, Briefcase, Plane, AlertTriangle,
-  ThumbsUp, ShoppingBag, Clock, Shield, Loader2
+  ThumbsUp, ShoppingBag, Clock, Shield, Loader2, Monitor,
+  Bot, Award, TrendingUp, Mic, Bookmark, BarChart3, CreditCard,
+  Share2, Bell, Sun, Moon
 } from 'lucide-react'
 import { useVisaStore } from '@/store/visaStore'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useLanguage } from './LanguageProvider'
 
@@ -21,7 +24,10 @@ interface ServiceCard {
 }
 
 const services: ServiceCard[] = [
-  { id: 'photo', title: { ar: 'استوديو الصور', en: 'Photo Studio', fr: "Studio Photo" }, subtitle: { ar: 'صورة تأشيرة احترافية', en: 'Professional visa photo', fr: 'Photo visa professionnelle' }, icon: Camera, color: 'neon-cyan', premium: true },
+  { id: 'evisa', title: { ar: 'تأشيرة إلكترونية', en: 'E-Visa Hub', fr: 'Centre E-Visa' }, subtitle: { ar: 'تقدم عبر الإنترنت', en: 'Apply online', fr: 'Postulez en ligne' }, icon: Monitor, color: 'neon-cyan' },
+  { id: 'success-stories', title: { ar: 'قصص النجاح', en: 'Success Stories', fr: 'Histoires de Succès' }, subtitle: { ar: 'قصص حقيقية', en: 'Real stories', fr: 'Histoires réelles' }, icon: Award, color: 'neon-cyan' },
+  { id: 'doc-generator', title: { ar: 'مولّد الوثائق', en: 'AI Document Generator', fr: 'Générateur IA' }, subtitle: { ar: 'وثائق احترافية', en: 'Professional docs', fr: 'Docs professionnels' }, icon: Bot, color: 'neon-purple' },
+  { id: 'photo', title: { ar: 'استوديو الصور', en: 'Photo Studio', fr: "Studio Photo" }, subtitle: { ar: 'صورة تأشيرة احترافية', en: 'Professional visa photo', fr: 'Photo visa professionnelle' }, icon: Camera, color: 'neon-magenta', premium: true },
   { id: 'autofill', title: { ar: 'تعبئة الاستمارات', en: 'Form Auto-fill', fr: 'Remplissage Auto' }, subtitle: { ar: 'ملء تلقائي للوثائق', en: 'Auto-fill documents', fr: 'Remplissage automatique' }, icon: FileText, color: 'neon-purple' },
   { id: 'coverletter', title: { ar: 'رسالة الدافع', en: 'Cover Letter', fr: 'Lettre de Motivation' }, subtitle: { ar: 'مولّد الخطابات الرسمية', en: 'Official letter generator', fr: 'Générateur de lettres' }, icon: PenTool, color: 'neon-magenta', premium: true },
   { id: 'scanner', title: { ar: 'فاحص الوثائق', en: 'Document Scanner', fr: 'Scanner de Documents' }, subtitle: { ar: 'تحقق من الامتثال', en: 'Verify compliance', fr: 'Vérifier la conformité' }, icon: Scan, color: 'neon-cyan' },
@@ -39,6 +45,13 @@ const services: ServiceCard[] = [
   { id: 'insurance', title: { ar: 'تأمين السفر', en: 'Travel Insurance', fr: 'Assurance Voyage' }, subtitle: { ar: 'قارن واختر', en: 'Compare & choose', fr: 'Comparez et choisissez' }, icon: Shield, color: 'neon-cyan' },
   { id: 'policy', title: { ar: 'مراقب السياسات', en: 'Policy Monitor', fr: 'Moniteur de Politique' }, subtitle: { ar: 'تحديثات القنصليات', en: 'Consulate updates', fr: 'Mises à jour consulats' }, icon: AlertTriangle, color: 'neon-purple' },
   { id: 'booking', title: { ar: 'مستشار الحجوزات', en: 'Booking Advisor', fr: 'Conseiller Réservation' }, subtitle: { ar: 'نصائح ذكية', en: 'Smart tips', fr: 'Conseils intelligents' }, icon: Plane, color: 'neon-magenta' },
+  { id: 'progress', title: { ar: 'تتبع التقدم', en: 'Progress Tracker', fr: 'Suivi de Progrès' }, subtitle: { ar: 'تتبع رحلتك', en: 'Track your journey', fr: 'Suivez votre parcours' }, icon: TrendingUp, color: 'emerald-400' },
+  { id: 'voice-interview', title: { ar: 'مقابلة صوتية', en: 'Voice Interview', fr: 'Entretien Vocal' }, subtitle: { ar: 'تدريب صوتي', en: 'Voice training', fr: 'Entraînement vocal' }, icon: Mic, color: 'neon-magenta' },
+  { id: 'deadline-reminders', title: { ar: 'التذكيرات', en: 'Reminders', fr: 'Rappels' }, subtitle: { ar: 'لا تفوت موعد', en: "Don't miss dates", fr: 'Ne manquez pas' }, icon: Bell, color: 'neon-magenta' },
+  { id: 'bookmarks', title: { ar: 'المفضلة', en: 'Favorites', fr: 'Favoris' }, subtitle: { ar: 'وجهات محفوظة', en: 'Saved destinations', fr: 'Destinations sauvegardées' }, icon: Bookmark, color: 'neon-purple' },
+  { id: 'share-results', title: { ar: 'مشاركة النتائج', en: 'Share Results', fr: 'Partager' }, subtitle: { ar: 'شارك نجاحك', en: 'Share success', fr: 'Partagez' }, icon: Share2, color: 'neon-cyan' },
+  { id: 'stats', title: { ar: 'الإحصائيات', en: 'Statistics', fr: 'Statistiques' }, subtitle: { ar: 'إحصائيات المجتمع', en: 'Community stats', fr: 'Stats communauté' }, icon: BarChart3, color: 'neon-purple' },
+  { id: 'payment', title: { ar: 'ترقية', en: 'Upgrade', fr: 'Upgrade' }, subtitle: { ar: 'ميزات إضافية', en: 'Premium features', fr: 'Fonctionnalités premium' }, icon: CreditCard, color: 'neon-magenta' },
 ]
 
 const LABELS = {
@@ -64,8 +77,9 @@ export function ServicesHub() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [isUpgrading, setIsUpgrading] = useState(false)
   const [upgradeError, setUpgradeError] = useState<string | null>(null)
-  const { upgradeMembership, membership } = useVisaStore()
+  const { upgradeMembership, membership, setActiveNav } = useVisaStore()
   const { language } = useLanguage()
+  const router = useRouter()
 
   const handleUpgrade = async (tier: 'gold' | 'premium', months: number) => {
     if (membership?.tier === 'premium' || membership?.tier === 'gold') {
@@ -95,15 +109,18 @@ export function ServicesHub() {
     { id: 'ai', label: LABELS.categories.ai },
   ]
 
+  const aiServices = ['evisa', 'doc-generator', 'success-stories', 'voice-interview', 'progress', 'share-results']
+  
   const filteredServices = services.filter(s => {
     if (activeCategory === 'all') return true
     if (activeCategory === 'free') return !s.premium
     if (activeCategory === 'premium') return s.premium
+    if (activeCategory === 'ai') return aiServices.includes(s.id)
     return true
   })
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
+    <div className="min-h-screen px-4 pt-20 pb-28 relative z-10">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -139,12 +156,50 @@ export function ServicesHub() {
         <div className="grid grid-cols-2 gap-3">
           {filteredServices.map((service, index) => {
             const Icon = service.icon
+            
+            const navMap: Record<string, string> = {
+              'evisa': 'evisa-hub',
+              'photo': 'photo',
+              'autofill': 'form-filler',
+              'coverletter': 'letters',
+              'scanner': 'scanner',
+              'bank': 'financial',
+              'appointment': 'radar',
+              'interview': 'chatbot',
+              'visafree': 'visafree',
+              'family': 'family',
+              'rejection': 'recours',
+              'insurance': 'insurance',
+              'success-stories': 'success-stories',
+              'doc-generator': 'doc-generator',
+              'progress': 'progress',
+              'voice-interview': 'voice-interview',
+              'deadline-reminders': 'deadline-reminders',
+              'bookmarks': 'bookmarks',
+              'share-results': 'share-results',
+              'stats': 'stats',
+              'payment': 'payment',
+              'marketplace': 'sim-marketplace',
+              'itinerary': 'trip-cost',
+              'postvisa': 'insurance',
+              'timeline': 'progress',
+              'policy': 'slot-monitor',
+              'community': 'community',
+              'booking': 'booking',
+            }
+            
+            const handleClick = () => {
+              const nav = navMap[service.id]
+              if (nav) setActiveNav(nav)
+            }
+            
             return (
               <motion.div
                 key={service.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.03 }}
+                onClick={handleClick}
                 className={cn(
                   'glass-card-hover p-4 cursor-pointer relative overflow-hidden',
                   service.premium && 'border-neon-magenta/30'

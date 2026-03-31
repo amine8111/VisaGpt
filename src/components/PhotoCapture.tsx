@@ -1,358 +1,392 @@
-'use client'
+'use client';
 
-import { motion } from 'framer-motion'
-import { useState, useRef, useEffect } from 'react'
-import { Camera, Upload, RotateCcw, Check, X, Download, AlertCircle } from 'lucide-react'
-import { useVisaStore } from '@/store/visaStore'
-import { cn } from '@/lib/utils'
-import { useLanguage } from './LanguageProvider'
+import { useEffect, useRef, useState } from 'react';
+import { Upload, Download, Image } from 'lucide-react';
+import PassportPhotoProcessor from './PassportPhotoProcessor';
+import { savePassportPhoto } from '@/lib/passportPhotoStore';
+import { useVisaStore } from '@/store/visaStore';
+import { useLanguage } from './LanguageProvider';
 
 interface PhotoPreview {
-  id: string
-  url: string
-  accepted: boolean | null
+  id: string;
+  url: string;
+  accepted: boolean | null;
+}
+
+interface CropRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function computeCropFromOverlay(
+  videoEl: HTMLVideoElement,
+  overlayEl: HTMLElement,
+  isMirrored: boolean = true
+): CropRect {
+  const videoRect = videoEl.getBoundingClientRect();
+  const overlayRect = overlayEl.getBoundingClientRect();
+
+  const srcW = videoEl.videoWidth;
+  const srcH = videoEl.videoHeight;
+  const boxW = videoRect.width;
+  const boxH = videoRect.height;
+
+  if (!srcW || !srcH || !boxW || !boxH) {
+    return { x: 0, y: 0, width: srcW, height: srcH };
+  }
+
+  const scale = Math.max(boxW / srcW, boxH / srcH);
+  const renderedW = srcW * scale;
+  const renderedH = srcH * scale;
+  const extraX = (renderedW - boxW) / 2;
+  const extraY = (renderedH - boxH) / 2;
+
+  const relX = overlayRect.left - videoRect.left;
+  const relY = overlayRect.top - videoRect.top;
+  const relW = overlayRect.width;
+  const relH = overlayRect.height;
+
+  let x = (relX + extraX) / scale;
+  const y = (relY + extraY) / scale;
+  const width = relW / scale;
+  const height = relH / scale;
+
+  if (isMirrored) {
+    x = srcW - (x + width);
+  }
+
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const cx = clamp(x, 0, srcW - 1);
+  const cy = clamp(y, 0, srcH - 1);
+  const cw = clamp(width, 1, srcW - cx);
+  const ch = clamp(height, 1, srcH - cy);
+
+  return { x: cx, y: cy, width: cw, height: ch };
 }
 
 export function PhotoCapture() {
-  const { membership, user } = useVisaStore()
-  const { t } = useLanguage()
-  const [hasCamera, setHasCamera] = useState<boolean | null>(null)
-  const [isCapturing, setIsCapturing] = useState(false)
-  const [photos, setPhotos] = useState<PhotoPreview[]>([])
-  const [uploadedPhoto, setUploadedPhoto] = useState<PhotoPreview | null>(null)
-  const [showGuidelines, setShowGuidelines] = useState(true)
-  const [processing, setProcessing] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const { t, language } = useLanguage()
+  console.log('🚨 PHOTO CAPTURE RUNNING');
+
+  const [cameraState, setCameraState] = useState<'IDLE' | 'STREAMING' | 'CAPTURED' | 'ERROR'>('IDLE');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<PhotoPreview[]>([]);
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
+  const [showProcessor, setShowProcessor] = useState(false);
+  const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const guideRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    checkCameraAccess()
-    return () => {
+    if (cameraState !== 'STREAMING') {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       }
+      return;
     }
-  }, [])
 
-  const checkCameraAccess = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
+    let cancelled = false;
+
+    const startCamera = async () => {
+      try {
+        setCameraError(null);
+        console.log('🎥 Requesting camera...');
+        
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 1280, height: 720 },
+          audio: false,
+        });
+        console.log('✅ Stream received:', stream.id);
+
+        if (cancelled) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play();
+            console.log('▶️ Video playing');
+          };
+        }
+      } catch (err) {
+        console.error('❌ Camera error:', err);
+        setCameraError(err instanceof Error ? err.message : 'Camera error');
+        setCameraState('ERROR');
       }
-      setHasCamera(true)
-    } catch {
-      setHasCamera(false)
+    };
+
+    startCamera();
+
+    return () => {
+      cancelled = true;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [cameraState]);
+
+  const openCamera = () => setCameraState('STREAMING');
+  
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     }
-  }
+    setCameraState('IDLE');
+    setCropRect(null);
+  };
 
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return
-    setIsCapturing(true)
+  const capturePhoto = async () => {
+    console.log('📸 Capture clicked');
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const guide = guideRef.current;
     
-    const canvas = canvasRef.current
-    const video = videoRef.current
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    if (!video || !canvas) {
+      console.error('Missing refs');
+      return;
+    }
     
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(video, 0, 0)
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('No canvas context');
+      return;
+    }
+
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    console.log('Capturing:', w, h);
     
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    canvas.width = w;
+    canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
+
+    // Compute crop from guide overlay
+    if (guide) {
+      const crop = computeCropFromOverlay(video, guide, true);
+      console.log('Crop rect:', crop);
+      setCropRect(crop);
+    }
+
+    const url = canvas.toDataURL('image/jpeg', 0.9);
+    console.log('Captured:', url.length);
     
-    setProcessing(true)
-    setTimeout(() => {
-      const newPhoto: PhotoPreview = {
-        id: Date.now().toString(),
-        url: dataUrl,
-        accepted: null
-      }
-      setPhotos(prev => [...prev, newPhoto])
-      setIsCapturing(false)
-      setProcessing(false)
-      setShowGuidelines(false)
-    }, 1000)
-  }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    
+    setCapturedImageUrl(url);
+    setCameraState('CAPTURED');
+  };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
     
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (event) => {
-      const dataUrl = event.target?.result as string
-      setProcessing(true)
-      setTimeout(() => {
-        setUploadedPhoto({
-          id: 'uploaded',
-          url: dataUrl,
-          accepted: null
-        })
-        setProcessing(false)
-        setShowGuidelines(false)
-      }, 1000)
-    }
-    reader.readAsDataURL(file)
+      setCapturedImageUrl(event.target?.result as string);
+      setCameraState('CAPTURED');
+      setCropRect(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleProcessorComplete = (processed: string) => {
+    const newPhoto: PhotoPreview = {
+      id: Date.now().toString(),
+      url: processed,
+      accepted: null
+    };
+    setPhotos(prev => [...prev, newPhoto]);
+    setShowProcessor(false);
+    setCapturedImageUrl(null);
+    setCameraState('IDLE');
+    setCropRect(null);
+    
+    // Save to localStorage for form auto-fill
+    savePassportPhoto(processed);
+    
+    // Also save to store
+    useVisaStore.getState().updateProfile({ passportPhoto: processed });
+  };
+
+  const handleProcessorCancel = () => {
+    setShowProcessor(false);
+    setCapturedImageUrl(null);
+    setCameraState('IDLE');
+    setCropRect(null);
+  };
+
+  const handleDownload = (photo: PhotoPreview) => {
+    const link = document.createElement('a');
+    link.download = `passport-photo-${Date.now()}.jpg`;
+    link.href = photo.url;
+    link.click();
+  };
+
+  if (showProcessor && capturedImageUrl) {
+    return (
+      <PassportPhotoProcessor
+        sourceImage={capturedImageUrl}
+        cropRect={cropRect}
+        onComplete={handleProcessorComplete}
+        onCancel={handleProcessorCancel}
+      />
+    );
   }
 
-  const acceptPhoto = (id: string) => {
-    setPhotos(prev => prev.map(p => p.id === id ? { ...p, accepted: true } : p))
+  if (cameraState === 'STREAMING') {
+    return (
+      <div style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        background: '#0a051a', 
+        zIndex: 99998,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <h2 style={{ color: 'white', marginBottom: 20 }}>{t('positionFace')}</h2>
+        <p style={{ color: '#ffcc00', marginBottom: 15, fontSize: 14, textAlign: 'center', maxWidth: 400 }}>
+          {t('schengenWallTip')}
+        </p>
+        
+        <div style={{ 
+          width: 480, 
+          height: 640,
+          border: '4px solid #0070f3',
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#000',
+          position: 'relative'
+        }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: 'scaleX(-1)'
+            }}
+          />
+          <div 
+            ref={guideRef}
+            style={{
+              position: 'absolute',
+              top: '15%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '60%',
+              height: '70%',
+              border: '3px dashed rgba(255,255,255,0.6)',
+              borderRadius: '50%',
+              pointerEvents: 'none'
+            }} 
+          />
+        </div>
+        
+        <div style={{ marginTop: 30, display: 'flex', gap: 20 }}>
+          <button onClick={capturePhoto} style={{ padding: '15px 30px', fontSize: 16, background: '#28a745', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            📸 {t('capture')}
+          </button>
+          <button onClick={closeCamera} style={{ padding: '15px 30px', fontSize: 16, background: '#dc3545', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            ✕ {t('cancel')}
+          </button>
+        </div>
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+      </div>
+    );
   }
 
-  const rejectPhoto = (id: string) => {
-    setPhotos(prev => prev.filter(p => p.id !== id))
-  }
-
-  const downloadPhoto = (photo: PhotoPreview) => {
-    const link = document.createElement('a')
-    link.download = `passport-photo-${Date.now()}.jpg`
-    link.href = photo.url
-    link.click()
-  }
-
-  const isPremium = membership?.tier === 'premium'
-
-  return (
-    <div className="min-h-screen px-4 py-6 pb-28 relative z-10">
-      <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <h2 className="text-2xl font-bold mb-2 gradient-text">التقاط صورة جواز</h2>
-          <p className="text-white/60 text-sm">احصل على صورة احترافية متوافق مع متطلبات التأشيرة</p>
-        </motion.div>
-
-        {!isPremium && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass-card p-4 mb-6 border-neon-purple/50"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-neon-purple/20 rounded-lg">
-                <AlertCircle className="text-neon-purple" size={20} />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">هذه الخدمة متاحة فقط للمشتركين بريميوم</p>
-                <p className="text-xs text-white/60">اشترك الآن للحصول على جميع الخدمات المتقدمة</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {showGuidelines && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-4 mb-6"
-          >
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <Check className="text-neon-cyan" size={18} />
-              إرشادات الصورة
-            </h3>
-            <ul className="space-y-2 text-sm text-white/80">
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-neon-cyan rounded-full" />
-                خلفية بيضاء أو فاتحة
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-neon-cyan rounded-full" />
-                وجه واضح بدون نظارات شمس
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-neon-cyan rounded-full" />
-                إضاءة متساوية بدون ظلال
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-neon-cyan rounded-full" />
-                تعبير محايد (بدون ابتسامة)
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-neon-cyan rounded-full" />
-                الأبعاد: 35mm × 45mm
-              </li>
-            </ul>
-          </motion.div>
-        )}
-
-        {hasCamera && isPremium && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="mb-6"
-          >
-            <div className="relative glass-card overflow-hidden rounded-xl">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full aspect-[3/4] object-cover"
-              />
-              <canvas ref={canvasRef} className="hidden" />
-              
-              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                <div className="flex justify-center gap-4">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={capturePhoto}
-                    disabled={isCapturing}
-                    className={cn(
-                      'w-16 h-16 rounded-full flex items-center justify-center border-4',
-                      isCapturing ? 'border-yellow-400 bg-yellow-400/20' : 'border-white bg-white/20',
-                      isCapturing && 'animate-pulse'
-                    )}
-                  >
-                    {processing ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
-                      />
-                    ) : (
-                      <Camera className="text-white" size={24} />
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-
-              <div className="absolute top-4 left-4 right-4">
-                <div className="bg-black/50 rounded-lg p-2 text-center">
-                  <p className="text-xs text-white/80">ضع وجهك داخل الإطار</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <label className="glass-card-hover p-4 flex items-center justify-center gap-3 cursor-pointer rounded-xl">
-            <Upload size={20} className="text-neon-cyan" />
-            <span className="font-medium">رفع صورة من الجهاز</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleUpload}
-              className="hidden"
-            />
-          </label>
-        </motion.div>
-
-        {uploadedPhoto && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6"
-          >
-            <h3 className="font-bold mb-3">الصورة المرفوعة</h3>
-            <div className="glass-card p-4">
-              <div className="relative aspect-[3/4] bg-gray-200 rounded-lg overflow-hidden mb-4">
-                <img
-                  src={uploadedPhoto.url}
-                  alt="Uploaded"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => downloadPhoto(uploadedPhoto)}
-                  className="flex-1 py-2 rounded-xl neon-button flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  تحميل
-                </button>
-                <button
-                  onClick={() => setUploadedPhoto(null)}
-                  className="px-4 py-2 rounded-xl glass-card-hover flex items-center justify-center"
-                >
-                  <RotateCcw size={16} />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
+  if (cameraState === 'CAPTURED' && capturedImageUrl) {
+    return (
+      <div style={{ padding: 20, maxWidth: 800, margin: '0 auto', background: '#0a051a', minHeight: '100vh', color: 'white' }}>
+        <h1>📷 {t('photoCaptured')}</h1>
+        <img src={capturedImageUrl} alt="Captured" style={{ maxWidth: 300, border: '2px solid #0070f3', borderRadius: 8, marginTop: 20 }} />
+        <div style={{ marginTop: 15 }}>
+          <button onClick={openCamera} style={{ padding: '12px 24px', marginRight: 10, background: '#666', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+            🔄 {t('retake')}
+          </button>
+          <button onClick={() => setShowProcessor(true)} style={{ padding: '12px 24px', background: '#28a745', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+            <Image size={16} /> {t('processForPassport')}
+          </button>
+        </div>
         {photos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <h3 className="font-bold mb-3">الصور الملتقطة ({photos.length})</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {photos.map((photo) => (
-                <motion.div
-                  key={photo.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className={cn(
-                    'glass-card p-2',
-                    photo.accepted === true && 'border-2 border-green-500'
-                  )}
-                >
-                  <div className="relative aspect-[3/4] bg-gray-200 rounded-lg overflow-hidden mb-2">
-                    <img
-                      src={photo.url}
-                      alt="Captured"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => downloadPhoto(photo)}
-                      className="flex-1 py-1.5 rounded-lg bg-neon-cyan/20 text-neon-cyan text-xs flex items-center justify-center gap-1"
-                    >
-                      <Download size={12} />
-                      تحميل
-                    </button>
-                    {photo.accepted === null && (
-                      <>
-                        <button
-                          onClick={() => acceptPhoto(photo.id)}
-                          className="p-1.5 rounded-lg bg-green-500/20 text-green-400"
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          onClick={() => rejectPhoto(photo.id)}
-                          className="p-1.5 rounded-lg bg-red-500/20 text-red-400"
-                        >
-                          <X size={14} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
+          <div style={{ marginTop: 30 }}>
+            <h3>{t('yourPhotos')}</h3>
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+              {photos.map(photo => (
+                <div key={photo.id} style={{ textAlign: 'center' }}>
+                  <img src={photo.url} alt="Processed" style={{ width: 150, height: 200, objectFit: 'cover', border: '1px solid #ccc', borderRadius: 4 }} />
+                  <button onClick={() => handleDownload(photo)} style={{ marginTop: 10, padding: '8px 16px', background: '#0070f3', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Download size={14} /> {t('download')}
+                  </button>
+                </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
-
-        {photos.length > 0 && photos.some(p => p.accepted) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-4 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-center"
-          >
-            <Check className="mx-auto mb-2 text-neon-cyan" size={24} />
-            <p className="font-medium">تم اختيار صورة صالحة!</p>
-            <p className="text-xs text-white/60 mt-1">يمكنك استخدامها لطلب التأشيرة</p>
-          </motion.div>
-        )}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 20, maxWidth: 800, margin: '0 auto', background: '#0a051a', minHeight: '100vh', color: 'white' }}>
+      <h1>📷 {t('passportPhoto')}</h1>
+      
+      {cameraError && (
+        <p style={{ color: 'red', padding: 10, background: '#330000' }}>Error: {cameraError}</p>
+      )}
+
+      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 30 }}>
+        <button onClick={openCamera} style={{ padding: '15px 30px', fontSize: 18, background: '#0070f3', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+          📷 {t('openCamera')}
+        </button>
+        
+        <label style={{ padding: '15px 30px', fontSize: 18, background: '#666', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Upload size={20} />
+          {t('uploadPhoto')}
+          <input type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
+        </label>
+      </div>
+
+      {photos.length > 0 && (
+        <div style={{ marginTop: 30 }}>
+          <h3>{t('yourPhotos')}</h3>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            {photos.map(photo => (
+              <div key={photo.id} style={{ textAlign: 'center' }}>
+                <img src={photo.url} alt="Processed" style={{ width: 150, height: 200, objectFit: 'cover', border: '1px solid #ccc', borderRadius: 4 }} />
+                <button onClick={() => handleDownload(photo)} style={{ marginTop: 10, padding: '8px 16px', background: '#0070f3', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Download size={14} /> {t('download')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
-  )
+  );
 }
 
-export default PhotoCapture
+export default PhotoCapture;
