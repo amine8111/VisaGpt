@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://geminivisaai-ns2s.onrender.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -33,7 +33,7 @@ api.interceptors.response.use(
       throw new Error('Server is taking too long to respond. Please try again.');
     }
     if (!error.response) {
-      throw new Error('Cannot connect to server. Please check your internet connection.');
+      return Promise.reject(new Error('Connection unavailable - using offline mode'));
     }
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
@@ -63,12 +63,7 @@ export interface PaginatedResponse<T> {
 }
 
 export async function wakeUpServer(): Promise<boolean> {
-  try {
-    await axios.get(`${API_BASE_URL}/health`, { timeout: 10000 });
-    return true;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 export { api };

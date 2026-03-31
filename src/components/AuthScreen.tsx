@@ -42,7 +42,7 @@ export function AuthScreen() {
     try {
       if (isLogin) {
         await login(formData.email, formData.password)
-        router.push('/')
+        window.location.href = '/'
       } else {
         if (!formData.name) {
           setError(t('fullName') + ' is required')
@@ -55,7 +55,7 @@ export function AuthScreen() {
           phone: formData.phone || '0000000000',
         })
         setSuccess(t('registrationSuccess') || 'Account created successfully! Redirecting...')
-        setTimeout(() => { router.push('/') }, 1000)
+        setTimeout(() => { window.location.href = '/' }, 1000)
       }
     } catch (err: any) {
       console.error('Auth error:', err)
