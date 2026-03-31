@@ -177,18 +177,21 @@ export function Dashboard() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {aiFeatures.map((feature, i) => (
-                  <motion.div
+                  <motion.button
                     key={i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 + i * 0.1 }}
-                    onClick={() => setActiveNav(feature.id)}
-                    className="glass-card p-3 text-center cursor-pointer hover:border-neon-cyan/50 transition-all"
+                    onClick={() => {
+                      console.log('AI Feature clicked:', feature.id);
+                      setActiveNav(feature.id);
+                    }}
+                    className="glass-card p-3 text-center cursor-pointer hover:border-neon-cyan/50 transition-all w-full"
                   >
                     <feature.icon className={cn('mx-auto mb-2', `text-${feature.color}`)} size={24} />
                     <p className="font-bold text-xs">{feature.name}</p>
                     <p className="text-xs text-white/40">{feature.desc}</p>
-                  </motion.div>
+                  </motion.button>
                 ))}
               </div>
             </div>
