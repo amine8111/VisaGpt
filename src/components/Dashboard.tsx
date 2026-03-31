@@ -113,10 +113,10 @@ export function Dashboard() {
   }
 
   const aiFeatures = [
-    { icon: Brain, name: language === 'ar' ? 'محلل ذكي' : 'Smart Analyzer', color: 'neon-cyan', desc: language === 'ar' ? 'تحليل الملف بالذكاء الاصطناعي' : 'AI profile analysis' },
-    { icon: Bot, name: language === 'ar' ? 'محاكي المقابلة' : 'Interview Simulator', color: 'neon-magenta', desc: language === 'ar' ? 'تدرب على الأسئلة' : 'Practice questions' },
-    { icon: Scan, name: language === 'ar' ? 'فاحص الوثائق' : 'Document Scanner', color: 'neon-purple', desc: language === 'ar' ? 'فحص الامتثال' : 'Check compliance' },
-    { icon: Target, name: language === 'ar' ? 'توقع النجاح' : 'Success Predictor', color: 'emerald-400', desc: language === 'ar' ? 'احتمالية الموافقة' : 'Approval chances' },
+    { id: 'calculator', icon: Brain, name: language === 'ar' ? 'محلل ذكي' : 'Smart Analyzer', color: 'neon-cyan', desc: language === 'ar' ? 'تحليل الملف بالذكاء الاصطناعي' : 'AI profile analysis' },
+    { id: 'chatbot', icon: Bot, name: language === 'ar' ? 'محاكي المقابلة' : 'Interview Simulator', color: 'neon-magenta', desc: language === 'ar' ? 'تدرب على الأسئلة' : 'Practice questions' },
+    { id: 'scanner', icon: Scan, name: language === 'ar' ? 'فاحص الوثائق' : 'Document Scanner', color: 'neon-purple', desc: language === 'ar' ? 'فحص الامتثال' : 'Check compliance' },
+    { id: 'form-filler', icon: Target, name: language === 'ar' ? 'توقع النجاح' : 'Success Predictor', color: 'emerald-400', desc: language === 'ar' ? 'احتمالية الموافقة' : 'Approval chances' },
   ]
 
   if (!mounted) {
@@ -182,7 +182,8 @@ export function Dashboard() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 + i * 0.1 }}
-                    className="glass-card p-3 text-center"
+                    onClick={() => setActiveNav(feature.id)}
+                    className="glass-card p-3 text-center cursor-pointer hover:border-neon-cyan/50 transition-all"
                   >
                     <feature.icon className={cn('mx-auto mb-2', `text-${feature.color}`)} size={24} />
                     <p className="font-bold text-xs">{feature.name}</p>
